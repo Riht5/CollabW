@@ -10,7 +10,7 @@ class Settings(BaseSettings):
     APP_VERSION: str = "0.1.0"
     
     # 数据库配置
-    DATABASE_URL: str = "sqlite:///./db/database.db"  # 指向 backend/db/database.db
+    DATABASE_URL: str = "sqlite:///./app/db/database.db"  # 指向 backend/app/db/database.db
 
     # 安全配置
     SECRET_KEY: str  # 在 .env 中设置
