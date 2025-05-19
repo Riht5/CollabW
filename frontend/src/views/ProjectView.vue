@@ -34,7 +34,7 @@ export default defineComponent({
     const projectStore = useProjectStore();
 
     const fetchProject = async () => {
-      const projectId = route.params.id;
+      const projectId = route.params.id as string;
       project.value = await projectStore.fetchProjectById(projectId);
     };
 

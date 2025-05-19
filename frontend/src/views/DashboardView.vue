@@ -4,7 +4,6 @@
     <div class="dashboard-content">
       <p>Welcome to your project management dashboard!</p>
       <project-list />
-      <task-list />
     </div>
   </div>
 </template>

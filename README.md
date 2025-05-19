@@ -61,6 +61,10 @@ The project is organized into two main directories: `backend` and `frontend`.
      ```
      pip install -r requirements.txt
      ```
+   - Initialize the database:
+     ```
+     python -m app.db.init_db
+     ```
 
 3. Set up the frontend:
    - Navigate to the `frontend` directory:
