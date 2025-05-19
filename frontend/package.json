@@ -1,0 +1,26 @@
+{
+  "name": "collabw-frontend",
+  "version": "1.0.0",
+  "description": "CollabW 前端项目，基于 Vue 3 + Vite。",
+  "main": "src/main.ts",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "serve": "vite preview",
+    "lint": "eslint . --ext .ts,.vue"
+  },
+  "dependencies": {
+    "axios": "",
+    "pinia": "",
+    "vue": "",
+    "vue-router": ""
+  },
+  "devDependencies": {
+    "@vitejs/plugin-vue": "",
+    "@types/node": "",
+    "eslint": "",
+    "typescript": "",
+    "vite": ""
+  },
+  "license": "MIT"
+}
