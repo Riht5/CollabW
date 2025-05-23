@@ -1,18 +1,20 @@
 <template>
-  <div class="login-view">
-    <h1>Login</h1>
-    <form @submit.prevent="handleLogin">
-      <div>
-        <label for="username">Username:</label>
-        <input type="text" id="username" v-model="username" required />
-      </div>
-      <div>
-        <label for="password">Password:</label>
-        <input type="password" id="password" v-model="password" required />
-      </div>
-      <button type="submit">Login</button>
-    </form>
-    <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+  <div class="login-view container">
+    <div class="card" style="max-width: 400px; margin: 60px auto;">
+      <h1 style="text-align:center; margin-bottom: 1em;">登录</h1>
+      <form @submit.prevent="handleLogin">
+        <div class="form-group">
+          <label for="username">用户名</label>
+          <input type="text" id="username" v-model="username" required autocomplete="username" />
+        </div>
+        <div class="form-group">
+          <label for="password">密码</label>
+          <input type="password" id="password" v-model="password" required autocomplete="current-password" />
+        </div>
+        <button class="button" type="submit" style="width:100%;">登录</button>
+      </form>
+      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
+    </div>
   </div>
 </template>
 

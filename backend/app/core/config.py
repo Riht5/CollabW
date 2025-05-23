@@ -17,6 +17,11 @@ class Settings(BaseSettings):
     ALGORITHM: str = "HS256"
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
 
+    # 注册密钥配置
+    DIRECTOR_REGISTER_KEY: str  # 在 .env 中设置
+    MANAGER_REGISTER_KEY: str  # 在 .env 中设置
+    USER_REGISTER_KEY: str  # 在 .env 中设置
+
     class Config:
         env_file = "./.env"  # 指向 backend/.env
         env_file_encoding = "utf-8"

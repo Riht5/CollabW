@@ -39,6 +39,15 @@ export interface ProjectProgress {
   progress: number;
 }
 
+export interface Register {
+  username: string;
+  email: string;
+  password: string;
+  confirm_password: string;
+  profile?: string;
+  register_key: string;
+}
+
 export interface AuthResponse {
   access_token: string;
   token_type: string;

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
-import type { LoginCredentials } from '@/types/index';
+import type { Register, LoginCredentials } from '@/types/index';
 
 export const useAuthStore = defineStore('auth', () => {
   const user = ref(null);
@@ -34,5 +34,9 @@ export const useAuthStore = defineStore('auth', () => {
     return !!token.value || !!localStorage.getItem('token');
   };
 
-  return { user, token, login, logout, isAuthenticated };
+  const register = async (user: Register) => {
+    await axios.post('/api/auth/register', user);
+  };
+  
+  return { user, token, login, logout, isAuthenticated, register };
 });

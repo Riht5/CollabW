@@ -30,11 +30,19 @@ class Project(Base):
     end_time = Column(DateTime, nullable=True, doc="项目结束时间")
     head_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True, doc="项目负责人ID")
 
-    # 关系：项目有多个成员
-    users = relationship("User", back_populates="project")
+    # 项目有多个成员（指定外键）
+    users = relationship(
+        "User",
+        back_populates="project",
+        foreign_keys='User.project_id'
+    )
 
-    # 关系：项目有一个负责人
-    head = relationship("User", back_populates="headed_projects", foreign_keys=[head_id])
+    # 项目有一个负责人（指定外键）
+    head = relationship(
+        "User",
+        back_populates="headed_projects",
+        foreign_keys=[head_id]
+    )
 
     # 关系：项目下有多个任务，删除项目时级联删除任务
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")

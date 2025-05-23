@@ -22,11 +22,23 @@ class User(Base):
     profile = Column(String, nullable=True, doc="用户简介")
     project_id = Column(Integer, ForeignKey('projects.id'), nullable=True, index=True, doc="所属项目ID")
 
-    # 关系：用户属于一个项目
-    project = relationship("Project", back_populates="users")
+    # 用户属于一个项目（指定外键）
+    project = relationship(
+        "Project",
+        back_populates="users",
+        foreign_keys=[project_id]
+    )
 
-    # 关系：用户作为负责人负责的项目（反向）
-    headed_projects = relationship("Project", back_populates="head", foreign_keys='Project.head_id')
+    # 用户作为负责人负责的项目（反向，指定外键）
+    headed_projects = relationship(
+        "Project",
+        back_populates="head",
+        foreign_keys='Project.head_id'
+    )
 
-    # 关系：用户作为负责人负责的任务（反向）
-    headed_tasks = relationship("Task", back_populates="head", foreign_keys='Task.head_id')
+    # 用户作为负责人负责的任务（反向，指定外键）
+    headed_tasks = relationship(
+        "Task",
+        back_populates="head",
+        foreign_keys='Task.head_id'
+    )

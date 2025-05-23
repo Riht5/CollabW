@@ -1,8 +1,12 @@
 <template>
   <div id="app">
     <AppHeader />
-    <Sidebar />
-    <router-view />
+    <div class="main-layout">
+      <Sidebar />
+      <div class="main-content">
+        <router-view />
+      </div>
+    </div>
   </div>
 </template>
 
@@ -22,8 +26,20 @@ export default defineComponent({
 
 <style>
 #app {
+  height: 100vh;
   display: flex;
   flex-direction: column;
-  height: 100vh;
+}
+.main-layout {
+  display: flex;
+  flex: 1 1 0;
+  min-height: 0;
+}
+.main-content {
+  flex: 1 1 0;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #f7f9fb;
 }
 </style>

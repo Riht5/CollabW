@@ -9,7 +9,7 @@ app = FastAPI(
 )
 
 # 注册所有 API 路由
-app.include_router(router)
+app.include_router(router, prefix="/api", tags=["api"])
 
 @app.get("/")
 def read_root():

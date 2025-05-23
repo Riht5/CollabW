@@ -5,10 +5,9 @@
     </div>
     <nav>
       <ul>
-        <li><router-link to="/">Home</router-link></li>
-        <li><router-link to="/projects">Projects</router-link></li>
-        <li><router-link to="/tasks">Tasks</router-link></li>
-        <li><router-link to="/login">Login</router-link></li>
+        <li><router-link to="/">首页</router-link></li>
+        <li><router-link to="/login">登录</router-link></li>
+        <li><router-link to="/register">注册</router-link></li>
       </ul>
     </nav>
   </header>
@@ -30,24 +29,36 @@ export default defineComponent({
   padding: 1rem;
   background-color: #42b983;
   color: white;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.08);
 }
 
 .logo h1 {
   margin: 0;
+  font-size: 2rem;
+  letter-spacing: 2px;
+  font-weight: bold;
 }
 
 nav ul {
   list-style: none;
   display: flex;
-  gap: 1rem;
+  gap: 1.5rem;
+  margin: 0;
+  padding: 0;
 }
 
 nav a {
   color: white;
   text-decoration: none;
+  font-size: 1.08em;
+  padding: 6px 14px;
+  border-radius: 5px;
+  transition: background 0.18s, color 0.18s;
 }
 
-nav a:hover {
-  text-decoration: underline;
+nav a:hover,
+nav .router-link-exact-active {
+  background: rgba(255,255,255,0.18);
+  color: #ffe082;
 }
 </style>

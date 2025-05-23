@@ -15,9 +15,14 @@ class UserBase(BaseModel):
     profile: Optional[str] = None
     project_id: Optional[int] = None
 
-class UserCreate(UserBase):
+class UserCreate(BaseModel):
     """用户注册请求体"""
+    username: str
+    email: str
     password: str
+    confirm_password: str
+    profile: Optional[str] = None
+    register_key: str
 
 class UserOut(BaseModel):
     """用于输出的用户信息（不包含敏感字段）"""
