@@ -1,80 +1,177 @@
 <template>
   <div class="register-view container">
     <div class="card" style="max-width: 400px; margin: 40px auto;">
-      <h1 style="text-align:center; margin-bottom: 1em;">注册新用户</h1>
-      <form @submit.prevent="handleRegister">
-        <div class="form-group">
-          <label for="username">用户名</label>
-          <input v-model="username" id="username" required autocomplete="username" />
-        </div>
-        <div class="form-group">
-          <label for="email">邮箱</label>
-          <input v-model="email" id="email" type="email" required autocomplete="email" />
-        </div>
-        <div class="form-group">
-          <label for="profile">简介</label>
-          <textarea v-model="profile" id="profile" rows="3" ></textarea>
-        </div>
-        <div class="form-group">
-          <label for="password">密码</label>
-          <input v-model="password" id="password" type="password" required autocomplete="new-password" />
-        </div>
-        <div class="form-group">
-          <label for="confirm_password">确认密码</label>
-          <input v-model="confirmPassword" id="confirm_password" type="password" required autocomplete="new-password" />
-        </div>
-        <div class="form-group">
-          <label for="register_key">注册密钥</label>
-          <input v-model="registerKey" id="register_key" required />
-        </div>
-        <button class="button" type="submit" style="width:100%;">注册</button>
-      </form>
-      <p v-if="errorMessage" class="error">{{ errorMessage }}</p>
-      <p v-if="successMessage" class="success">{{ successMessage }}</p>
+      <div class="card-body">
+        <form @submit.prevent="handleRegister">
+          <div class="form-group">
+            <label class="form-label required" for="username">用户名</label>
+            <input 
+              class="form-input"
+              v-model="formData.username" 
+              id="username" 
+              required 
+              autocomplete="username" 
+              placeholder="请输入用户名"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label required" for="email">邮箱</label>
+            <input 
+              class="form-input"
+              v-model="formData.email" 
+              id="email" 
+              type="email" 
+              required 
+              autocomplete="email" 
+              placeholder="请输入邮箱地址"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label" for="profile">简介（可选）</label>
+            <textarea 
+              class="form-textarea"
+              v-model="formData.profile" 
+              id="profile" 
+              rows="3" 
+              placeholder="请输入个人简介"
+            ></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label required" for="password">密码</label>
+            <input 
+              class="form-input"
+              v-model="formData.password" 
+              id="password" 
+              type="password" 
+              required 
+              autocomplete="new-password" 
+              placeholder="请输入密码（至少8位）"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label required" for="confirm_password">确认密码</label>
+            <input 
+              class="form-input"
+              v-model="formData.confirm_password" 
+              id="confirm_password" 
+              type="password" 
+              required 
+              autocomplete="new-password" 
+              placeholder="请再次输入密码"
+            />
+          </div>
+          <div class="form-group">
+            <label class="form-label required" for="register_key">注册密钥</label>
+            <input 
+              class="form-input"
+              v-model="formData.register_key" 
+              id="register_key" 
+              required 
+              placeholder="请输入注册密钥"
+            />
+            <div class="form-help">不同的注册密钥对应不同的用户角色</div>
+          </div>
+          <button 
+            class="btn btn-primary" 
+            type="submit" 
+            style="width:100%;" 
+            :disabled="loading"
+          >
+            {{ loading ? '注册中...' : '注册' }}
+          </button>
+        </form>
+        <div v-if="errorMessage" class="error-message mt-md">{{ errorMessage }}</div>
+        <div v-if="successMessage" class="success-message mt-md">{{ successMessage }}</div>
+      </div>
+      <div class="card-footer text-center">
+        <router-link to="/login">已有账号？点击登录</router-link>
+      </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref } from 'vue';
+import { defineComponent, ref, reactive } from 'vue';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import type { Register } from '@/types/index';
 
 export default defineComponent({
   name: 'RegisterView',
   setup() {
-    const username = ref('');
-    const email = ref('');
-    const profile = ref('');
-    const password = ref('');
-    const confirmPassword = ref('');
-    const registerKey = ref('');
+    const router = useRouter();
+    const authStore = useAuthStore();
     const errorMessage = ref('');
     const successMessage = ref('');
-    const authStore = useAuthStore();
+    const loading = ref(false);
+
+    const formData = reactive<Register>({
+      username: '',
+      email: '',
+      password: '',
+      confirm_password: '',
+      profile: '',
+      register_key: '',
+    });
+
+    const validateForm = (): boolean => {
+      if (!formData.username || !formData.email || !formData.password || 
+          !formData.confirm_password || !formData.register_key) {
+        errorMessage.value = '请填写所有必需字段';
+        return false;
+      }
+
+      if (formData.password !== formData.confirm_password) {
+        errorMessage.value = '两次输入的密码不一致';
+        return false;
+      }
+
+      if (formData.password.length < 8) {
+        errorMessage.value = '密码至少需要8位字符';
+        return false;
+      }
+
+      return true;
+    };
 
     const handleRegister = async () => {
       errorMessage.value = '';
       successMessage.value = '';
-      if (password.value !== confirmPassword.value) {
-        errorMessage.value = '两次输入的密码不一致';
+
+      if (!validateForm()) {
         return;
       }
+
+      loading.value = true;
+
       try {
-        await authStore.register({
-          username: username.value,
-          email: email.value,
-          password: password.value,
-          confirm_password: confirmPassword.value,
-          profile: profile.value,
-          register_key: registerKey.value,
-        });
-        successMessage.value = '注册成功！请登录。';
+        await authStore.register(formData);
+        successMessage.value = '注册成功！正在跳转到登录页面...';
+        
+        // 延迟跳转，让用户看到成功消息
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
       } catch (error: any) {
-        errorMessage.value = error.response?.data?.detail || '注册失败';
+        errorMessage.value = error.response?.data?.detail || '注册失败，请检查输入信息';
+      } finally {
+        loading.value = false;
       }
     };
 
-    return { username, email, profile, password, confirmPassword, registerKey, errorMessage, successMessage, handleRegister };
+    return { 
+      formData,
+      errorMessage, 
+      successMessage, 
+      loading,
+      handleRegister 
+    };
   },
 });
 </script>
+
+<style scoped>
+.register-view {
+  padding: var(--spacing-xl);
+}
+</style>

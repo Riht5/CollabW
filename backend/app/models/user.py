@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Enum, ForeignKey
+from sqlalchemy import Column, Integer, Float, String, Boolean, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from ..db.base import Base
 import enum
@@ -20,25 +20,20 @@ class User(Base):
     email = Column(String(100), unique=True, index=True, nullable=False, doc="邮箱")
     role = Column(Enum(UserRole), nullable=False, default=UserRole.user, doc="用户角色")
     profile = Column(String, nullable=True, doc="用户简介")
-    project_id = Column(Integer, ForeignKey('projects.id'), nullable=True, index=True, doc="所属项目ID")
+    performance = Column(Float, nullable=True, doc="用户绩效评分")
+    outstanding = Column(Boolean, nullable=True, default=False, doc="是否为优秀员工")
+    task_id = Column(Integer, ForeignKey('tasks.id'), nullable=True, index=True, doc="参与的任务ID")
 
-    # 用户属于一个项目（指定外键）
-    project = relationship(
-        "Project",
+    # 用户参与的任务
+    task = relationship(
+        "Task",
         back_populates="users",
-        foreign_keys=[project_id]
+        foreign_keys=[task_id]
     )
 
-    # 用户作为负责人负责的项目（反向，指定外键）
-    headed_projects = relationship(
-        "Project",
-        back_populates="head",
-        foreign_keys='Project.head_id'
-    )
-
-    # 用户作为负责人负责的任务（反向，指定外键）
-    headed_tasks = relationship(
+    # 用户作为负责人的任务
+    headed_task = relationship(
         "Task",
         back_populates="head",
-        foreign_keys='Task.head_id'
+        foreign_keys="Task.head_id"
     )

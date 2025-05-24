@@ -11,53 +11,42 @@ class UserBase(BaseModel):
     """用户基础信息"""
     username: str
     email: str
-    role: UserRole = UserRole.user
+    role: UserRole
     profile: Optional[str] = None
-    project_id: Optional[int] = None
+    outstanding: Optional[bool] = False
+    task_id: Optional[int] = None
 
 class UserCreate(BaseModel):
-    """用户注册请求体"""
+    """用户创建/注册请求体"""
     username: str
     email: str
     password: str
     confirm_password: str
-    profile: Optional[str] = None
     register_key: str
-
-class UserOut(BaseModel):
-    """用于输出的用户信息（不包含敏感字段）"""
-    id: int
-    username: str
-    email: str
-    role: UserRole
     profile: Optional[str] = None
-    project_id: Optional[int] = None
-
-    model_config = {"from_attributes": True}
 
 class UserLogin(BaseModel):
     """用户登录请求体"""
-    username: str
+    identifier: str  # 用户名或邮箱
     password: str
 
 class UserUpdate(BaseModel):
-    """用户信息更新请求体，所有字段可选"""
+    """用户信息更新请求体"""
     username: Optional[str] = None
     email: Optional[str] = None
     password: Optional[str] = None
     role: Optional[UserRole] = None
     profile: Optional[str] = None
-    project_id: Optional[int] = None
+    task_id: Optional[int] = None
+    performance: Optional[float] = None
+    outstanding: Optional[bool] = None
 
-class User(BaseModel):
-    """用户模型"""
+class User(UserBase):
+    """用户完整信息"""
     id: int
-    username: str
-    email: str
-    role: UserRole
-    profile: Optional[str] = None
-    project_id: Optional[int] = None
-
+    hashed_password: str
+    performance: Optional[float] = None
+    
     model_config = {"from_attributes": True}
 
 class UserList(BaseModel):

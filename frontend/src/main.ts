@@ -3,6 +3,12 @@ import { createPinia } from 'pinia';
 import App from './App.vue';
 import router from './router';
 
+// 导入全局样式
+import '@/assets/styles/main.css';
+
+// 导入并配置 axios
+import '@/utils/axios';
+
 const app = createApp(App);
 
 app.use(createPinia());

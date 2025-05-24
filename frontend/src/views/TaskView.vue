@@ -17,11 +17,11 @@ export default defineComponent({
     });
 
     const editTask = () => {
-      // Logic to navigate to edit task view
+      // TODO
     };
 
     const deleteTask = async () => {
-      // Logic to delete the task
+      // TODO
     };
 
     return {

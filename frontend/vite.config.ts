@@ -8,7 +8,7 @@ export default defineConfig({
     open: true,
     proxy: {
       '/api': {
-        target: 'http://localhost:8000', // 后端 FastAPI 服务地址
+        target: 'http://127.0.0.1:8000', // 后端 FastAPI 服务地址
         changeOrigin: true,
       },
     },

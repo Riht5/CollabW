@@ -1,16 +1,21 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
+import enum
+
+class ProjectStatus(str, enum.Enum):
+    pending = "pending"
+    in_progress = "in_progress"
+    completed = "completed"
 
 class ProjectBase(BaseModel):
     """项目基础字段"""
     name: str
     description: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[ProjectStatus] = ProjectStatus.pending
     estimated_duration: Optional[int] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    head_id: int = None
 
 class ProjectCreate(ProjectBase):
     """创建项目请求体"""
@@ -20,11 +25,10 @@ class ProjectUpdate(BaseModel):
     """更新项目请求体，所有字段可选"""
     name: Optional[str] = None
     description: Optional[str] = None
-    status: Optional[str] = None
+    status: Optional[ProjectStatus] = None
     estimated_duration: Optional[int] = None
     start_time: Optional[datetime] = None
     end_time: Optional[datetime] = None
-    head_id: Optional[int] = None
 
 class Project(ProjectBase):
     """项目输出模型"""

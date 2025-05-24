@@ -2,25 +2,24 @@ export interface Project {
   id: number;
   name: string;
   description?: string;
-  status?: 'pending' | 'in_progress' | 'completed';
+  status: 'pending' | 'in_progress' | 'completed';
   estimated_duration?: number;
   start_time?: string;
   end_time?: string;
-  head_id?: number;
-  users?: User[];
   tasks?: Task[];
+  assigned_users?: User[];
   dependencies?: Project[];
-  dependents?: Project[];
 }
 
 export interface Task {
   id: number;
   name: string;
   description?: string;
-  priority: 'low' | 'medium' | 'high';
-  status: boolean;
+  workload: 'light' | 'medium' | 'heavy';
+  finished: boolean;
   project_id: number;
   head_id?: number;
+  head?: User;
 }
 
 export interface User {
@@ -29,14 +28,32 @@ export interface User {
   email: string;
   role: 'director' | 'manager' | 'user';
   profile?: string;
-  project_id?: number;
+  performance?: number;
+  outstanding?: boolean;
+  task_id?: number;
 }
 
-export interface ProjectProgress {
-  id: number;
+export interface ProjectCreate {
+  name: string;
+  description?: string;
+  status?: 'pending' | 'in_progress' | 'completed';
+  estimated_duration?: number;
+  start_time?: string;
+  end_time?: string;
+}
+
+export interface TaskCreate {
+  name: string;
+  description?: string;
+  workload: 'light' | 'medium' | 'heavy';
+  finished: boolean;
   project_id: number;
-  date: string;
-  progress: number;
+  head_id?: number;
+}
+
+export interface LoginCredentials {
+  identifier: string;
+  password: string;
 }
 
 export interface Register {
@@ -46,14 +63,10 @@ export interface Register {
   confirm_password: string;
   profile?: string;
   register_key: string;
+  role?: 'director' | 'manager' | 'user';
 }
 
 export interface AuthResponse {
   access_token: string;
   token_type: string;
-}
-
-export interface LoginCredentials {
-  username: string;
-  password: string;
 }

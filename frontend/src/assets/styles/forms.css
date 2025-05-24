@@ -1,0 +1,121 @@
+.form-group {
+  margin-bottom: var(--spacing-lg);
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-row {
+  display: grid;
+  gap: var(--spacing-md);
+}
+
+.form-row.cols-2 {
+  grid-template-columns: 1fr 1fr;
+}
+
+.form-row.cols-3 {
+  grid-template-columns: 1fr 1fr 1fr;
+}
+
+.form-label {
+  display: block;
+  margin-bottom: var(--spacing-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  font-size: var(--font-size-base);
+}
+
+.form-label.required::after {
+  content: ' *';
+  color: var(--danger-color);
+}
+
+.form-input,
+.form-textarea,
+.form-select {
+  width: 100%;
+  padding: 12px var(--spacing-md);
+  border: 1px solid var(--border-light);
+  border-radius: var(--radius-sm);
+  font-size: var(--font-size-base);
+  transition: all 0.2s ease;
+  background: var(--bg-primary);
+}
+
+.form-input:focus,
+.form-textarea:focus,
+.form-select:focus {
+  outline: none;
+  border-color: var(--primary-color);
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.form-input:disabled,
+.form-textarea:disabled,
+.form-select:disabled {
+  background: var(--bg-secondary);
+  color: var(--text-muted);
+  cursor: not-allowed;
+}
+
+.form-input.error,
+.form-textarea.error,
+.form-select.error {
+  border-color: var(--danger-color);
+}
+
+.form-checkbox,
+.form-radio {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  cursor: pointer;
+}
+
+.form-checkbox input,
+.form-radio input {
+  width: 16px;
+  height: 16px;
+  margin: 0;
+}
+
+.form-error {
+  color: var(--danger-color);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+}
+
+.form-help {
+  color: var(--text-muted);
+  font-size: var(--font-size-sm);
+  margin-top: var(--spacing-xs);
+}
+
+/* 搜索框 */
+.search-input {
+  position: relative;
+}
+
+.search-input input {
+  padding-left: 40px;
+}
+
+.search-input::before {
+  content: '🔍';
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-muted);
+  z-index: 1;
+}
+
+/* 响应式 */
+@media (max-width: 768px) {
+  .form-row.cols-2,
+  .form-row.cols-3 {
+    grid-template-columns: 1fr;
+  }
+}

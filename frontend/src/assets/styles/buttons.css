@@ -1,0 +1,94 @@
+.btn {
+  padding: 10px 20px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-sm);
+  text-decoration: none;
+  font-size: var(--font-size-base);
+  line-height: 1.5;
+  text-align: center;
+  vertical-align: middle;
+  user-select: none;
+}
+
+.btn:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.25);
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+}
+
+/* 按钮尺寸 */
+.btn-sm {
+  padding: 6px 12px;
+  font-size: var(--font-size-sm);
+}
+
+.btn-lg {
+  padding: 12px 24px;
+  font-size: var(--font-size-lg);
+}
+
+/* 按钮变体 */
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-secondary {
+  background: var(--secondary-color);
+  color: white;
+}
+
+.btn-secondary:hover:not(:disabled) {
+  background: var(--secondary-hover);
+}
+
+.btn-danger {
+  background: var(--danger-color);
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: var(--danger-hover);
+}
+
+.btn-outline {
+  background: transparent;
+  color: var(--primary-color);
+  border: 1px solid var(--primary-color);
+}
+
+.btn-outline:hover:not(:disabled) {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-ghost {
+  background: transparent;
+  color: var(--text-secondary);
+  border: none;
+}
+
+.btn-ghost:hover:not(:disabled) {
+  background: var(--bg-hover);
+  color: var(--text-primary);
+}
+
+/* 图标样式 */
+.btn .icon {
+  font-style: normal;
+}

@@ -1,39 +1,96 @@
 <template>
-  <div class="dashboard container">
+  <div class="dashboard">
     <div class="dashboard-header">
       <h1>仪表盘</h1>
-      <p class="dashboard-welcome">欢迎来到项目协作管理平台！</p>
-    </div>
-    <div class="dashboard-content">
-      <div class="dashboard-section card">
-        <h2>我的项目</h2>
-        <project-list />
+      <div class="header-actions">
+        <router-link to="/projects/create" class="btn btn-primary">
+          <i class="icon">➕</i> 创建项目
+        </router-link>
+        <router-link to="/performance" class="btn btn-secondary">
+          <i class="icon">📊</i> 绩效看板
+        </router-link>
       </div>
-      <div class="dashboard-section card">
-        <h2>我的任务</h2>
-        <task-list :tasks="tasks" />
+    </div>
+
+    <div class="dashboard-stats">
+      <div class="stat-card">
+        <div class="stat-icon">📁</div>
+        <div class="stat-content">
+          <h3>总项目数</h3>
+          <div class="stat-number">{{ projects.length }}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">🚀</div>
+        <div class="stat-content">
+          <h3>进行中项目</h3>
+          <div class="stat-number">{{ inProgressProjects }}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">✅</div>
+        <div class="stat-content">
+          <h3>已完成项目</h3>
+          <div class="stat-number">{{ completedProjects }}</div>
+        </div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-icon">📝</div>
+        <div class="stat-content">
+          <h3>总任务数</h3>
+          <div class="stat-number">{{ tasks.length }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="dashboard-content">
+      <div class="content-section">
+        <div class="section-header">
+          <h2>最近项目</h2>
+          <router-link to="/projects" class="view-all-link">查看全部</router-link>
+        </div>
+        <ProjectList :projects="projects.slice(0, 4)" :show-actions="false" />
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
-import ProjectList from '@/components/projects/ProjectList.vue';
-import TaskList from '@/components/tasks/TaskList.vue';
+import { defineComponent, computed, onMounted } from 'vue';
+import { useProjectStore } from '@/stores/project';
 import { useTaskStore } from '@/stores/task';
+import ProjectList from '@/components/projects/ProjectList.vue';
 
 export default defineComponent({
   name: 'DashboardView',
   components: {
     ProjectList,
-    TaskList,
   },
   setup() {
+    const projectStore = useProjectStore();
     const taskStore = useTaskStore();
-    // 确保 taskStore.tasks 是响应式的任务数组
+
+    const projects = computed(() => projectStore.projects);
+    const tasks = computed(() => taskStore.tasks);
+
+    const inProgressProjects = computed(() => 
+      projects.value.filter(p => p.status === 'in_progress').length
+    );
+
+    const completedProjects = computed(() => 
+      projects.value.filter(p => p.status === 'completed').length
+    );
+
+    onMounted(() => {
+      projectStore.fetchProjects();
+      taskStore.fetchTasks();
+    });
+
     return {
-      tasks: taskStore.tasks,
+      projects,
+      tasks,
+      inProgressProjects,
+      completedProjects,
     };
   },
 });
@@ -41,48 +98,162 @@ export default defineComponent({
 
 <style scoped>
 .dashboard {
-  padding: 32px 0;
+  padding: 32px;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
 .dashboard-header {
-  text-align: center;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
   margin-bottom: 32px;
 }
 
-.dashboard-welcome {
+.dashboard-header h1 {
+  color: #2c3e50;
+  font-size: 32px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.header-actions {
+  display: flex;
+  gap: 12px;
+}
+
+.dashboard-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 24px;
+  margin-bottom: 48px;
+}
+
+.stat-card {
+  background: white;
+  padding: 24px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  transition: transform 0.2s;
+}
+
+.stat-card:hover {
+  transform: translateY(-2px);
+}
+
+.stat-icon {
+  font-size: 48px;
+}
+
+.stat-content h3 {
+  margin: 0 0 8px 0;
   color: #666;
-  font-size: 1.1em;
-  margin-top: 8px;
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.stat-number {
+  font-size: 32px;
+  font-weight: 700;
+  color: #2c3e50;
 }
 
 .dashboard-content {
   display: flex;
-  flex-wrap: wrap;
+  flex-direction: column;
   gap: 32px;
-  justify-content: center;
 }
 
-.dashboard-section {
-  flex: 1 1 350px;
-  min-width: 320px;
-  max-width: 500px;
-  margin: 0 auto;
+.content-section {
+  background: white;
+  padding: 32px;
+  border-radius: 12px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
-.card {
-  background: #fff;
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.section-header h2 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 24px;
+  font-weight: 600;
+}
+
+.view-all-link {
+  color: #3498db;
+  text-decoration: none;
+  font-weight: 500;
+}
+
+.view-all-link:hover {
+  text-decoration: underline;
+}
+
+.btn {
+  padding: 12px 20px;
+  border: none;
   border-radius: 8px;
-  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.08);
-  padding: 24px 20px 20px 20px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  text-decoration: none;
 }
 
-@media (max-width: 900px) {
-  .dashboard-content {
-    flex-direction: column;
-    gap: 24px;
+.btn-primary {
+  background: #3498db;
+  color: white;
+}
+
+.btn-primary:hover {
+  background: #2980b9;
+}
+
+.btn-secondary {
+  background: #95a5a6;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background: #7f8c8d;
+}
+
+.icon {
+  font-style: normal;
+}
+
+@media (max-width: 768px) {
+  .dashboard {
+    padding: 16px;
   }
-  .dashboard-section {
-    max-width: 100%;
+  
+  .dashboard-header {
+    flex-direction: column;
+    gap: 16px;
+    align-items: stretch;
+  }
+  
+  .header-actions {
+    justify-content: center;
+  }
+  
+  .dashboard-stats {
+    grid-template-columns: 1fr;
+  }
+  
+  .content-section {
+    padding: 24px;
   }
 }
 </style>

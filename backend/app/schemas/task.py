@@ -2,17 +2,17 @@ from pydantic import BaseModel
 from typing import Optional, List
 import enum
 
-class TaskPriority(str, enum.Enum):
-    low = "low"
+class TaskWorkload(str, enum.Enum):
+    light = "light"
     medium = "medium"
-    high = "high"
+    heavy = "heavy"
 
 class TaskBase(BaseModel):
     """任务基础字段"""
     name: str
     description: Optional[str] = None
-    priority: TaskPriority = TaskPriority.low
-    status: bool = False
+    workload: TaskWorkload = TaskWorkload.light
+    finished: bool = False
     project_id: int
     head_id: Optional[int] = None
 
@@ -24,8 +24,8 @@ class TaskUpdate(BaseModel):
     """更新任务请求体，所有字段可选"""
     name: Optional[str] = None
     description: Optional[str] = None
-    priority: Optional[TaskPriority] = None
-    status: Optional[bool] = None
+    workload: Optional[TaskWorkload] = None
+    finished: Optional[bool] = None
     project_id: Optional[int] = None
     head_id: Optional[int] = None
 

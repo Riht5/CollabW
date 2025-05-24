@@ -17,7 +17,7 @@ project_dependencies = Table(
 
 class Project(Base):
     """
-    项目表模型，描述项目的基本信息和与用户、任务、依赖的关系。
+    项目表模型，描述项目的基本信息和与任务、依赖的关系。
     """
     __tablename__ = 'projects'
 
@@ -28,21 +28,6 @@ class Project(Base):
     estimated_duration = Column(Integer, nullable=True, doc="预计时长（单位：小时）")
     start_time = Column(DateTime, nullable=True, doc="项目开始时间")
     end_time = Column(DateTime, nullable=True, doc="项目结束时间")
-    head_id = Column(Integer, ForeignKey('users.id'), nullable=False, index=True, doc="项目负责人ID")
-
-    # 项目有多个成员（指定外键）
-    users = relationship(
-        "User",
-        back_populates="project",
-        foreign_keys='User.project_id'
-    )
-
-    # 项目有一个负责人（指定外键）
-    head = relationship(
-        "User",
-        back_populates="headed_projects",
-        foreign_keys=[head_id]
-    )
 
     # 关系：项目下有多个任务，删除项目时级联删除任务
     tasks = relationship("Task", back_populates="project", cascade="all, delete-orphan")
@@ -62,7 +47,10 @@ class ProjectProgress(Base):
     """
     __tablename__ = 'project_progress'
 
-    id = Column(Integer, primary_key=True)
-    project_id = Column(Integer, ForeignKey('projects.id'), index=True)
-    date = Column(Date, index=True)
-    progress = Column(Float, nullable=False)
+    id = Column(Integer, primary_key=True, index=True)
+    project_id = Column(Integer, ForeignKey('projects.id'), nullable=False, index=True, doc="所属项目ID")
+    date = Column(Date, nullable=False, index=True, doc="日期")
+    progress = Column(Float, nullable=False, doc="完成进度（0-1之间）")
+    
+    # 关系：进度记录属于某个项目
+    project = relationship("Project", backref="progress_records")

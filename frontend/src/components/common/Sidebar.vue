@@ -1,20 +1,20 @@
 <template>
-  <nav class="sidebar">
-    <ul>
-      <li>
-        <router-link to="/dashboard" active-class="active-link">Dashboard</router-link>
-      </li>
-      <li>
-        <router-link to="/projects" active-class="active-link">Projects</router-link>
-      </li>
-      <li>
-        <router-link to="/tasks" active-class="active-link">Tasks</router-link>
-      </li>
-      <li>
-        <router-link to="/profile" active-class="active-link">Profile</router-link>
-      </li>
-    </ul>
-  </nav>
+  <aside class="sidebar">
+    <nav class="nav-menu">
+      <router-link to="/" class="nav-item" :class="{ active: $route.name === 'Dashboard' }">
+        <i class="icon">📊</i>
+        <span>仪表盘</span>
+      </router-link>
+      <router-link to="/projects" class="nav-item" :class="{ active: $route.path.startsWith('/projects') }">
+        <i class="icon">📁</i>
+        <span>项目管理</span>
+      </router-link>
+      <router-link to="/performance" class="nav-item" :class="{ active: $route.name === 'Performance' }">
+        <i class="icon">🏆</i>
+        <span>绩效看板</span>
+      </router-link>
+    </nav>
+  </aside>
 </template>
 
 <script lang="ts">
@@ -27,60 +27,42 @@ export default defineComponent({
 
 <style scoped>
 .sidebar {
-  width: 220px;
-  min-height: 100vh;
-  background: linear-gradient(135deg, #42b983 60%, #3498db 100%);
-  color: #fff;
-  padding: 32px 12px 18px 12px;
-  box-shadow: 2px 0 8px rgba(52, 152, 219, 0.08);
+  width: 240px;
+  background: white;
+  border-right: 1px solid #e0e0e0;
+  padding: 24px 0;
+}
+
+.nav-menu {
   display: flex;
   flex-direction: column;
-  position: relative;
 }
 
-.sidebar ul {
-  list-style: none;
-  padding: 0;
-  margin: 0;
-  flex: 1;
-}
-
-.sidebar li {
-  margin: 18px 0;
-}
-
-.sidebar a {
-  color: #fff;
+.nav-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 24px;
+  color: #666;
   text-decoration: none;
-  font-size: 1.08em;
-  padding: 8px 16px;
-  border-radius: 5px;
-  display: block;
-  transition: background 0.18s, color 0.18s;
+  transition: all 0.2s;
+  border-right: 3px solid transparent;
 }
 
-.sidebar a:hover,
-.sidebar .active-link {
-  background: rgba(255,255,255,0.18);
-  color: #ffe082;
+.nav-item:hover {
+  background: #f8f9fa;
+  color: #3498db;
 }
 
-@media (max-width: 700px) {
-  .sidebar {
-    width: 100%;
-    min-height: auto;
-    flex-direction: row;
-    padding: 10px 0;
-    box-shadow: none;
-    background: #42b983;
-  }
-  .sidebar ul {
-    display: flex;
-    flex-direction: row;
-    justify-content: space-around;
-  }
-  .sidebar li {
-    margin: 0 8px;
-  }
+.nav-item.active {
+  background: #e3f2fd;
+  color: #3498db;
+  border-right-color: #3498db;
+  font-weight: 500;
+}
+
+.icon {
+  font-style: normal;
+  font-size: 18px;
 }
 </style>

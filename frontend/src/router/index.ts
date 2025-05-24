@@ -1,41 +1,62 @@
 import { createRouter, createWebHistory } from 'vue-router';
-import DashboardView from '../views/DashboardView.vue';
-import RegisterView from '../views/RegisterView.vue';
-import LoginView from '../views/LoginView.vue';
-import ProjectView from '../views/ProjectView.vue';
-import TaskView from '../views/TaskView.vue';
+import { useAuthStore } from '@/stores/auth';
 
 const routes = [
   {
     path: '/',
     name: 'Dashboard',
-    component: DashboardView,
-  },
-  {
-    path: '/register',
-    name: 'Register',
-    component: RegisterView,
+    component: () => import('@/views/DashboardView.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/login',
     name: 'Login',
-    component: LoginView,
+    component: () => import('@/views/LoginView.vue')
+  },
+  {
+    path: '/register',
+    name: 'Register',
+    component: () => import('@/views/RegisterView.vue')
+  },
+  {
+    path: '/projects',
+    name: 'Projects',
+    component: () => import('@/views/ProjectListView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
+    path: '/projects/create',
+    name: 'ProjectCreate',
+    component: () => import('@/views/ProjectCreateView.vue'),
+    meta: { requiresAuth: true }
   },
   {
     path: '/projects/:id',
-    name: 'Project',
-    component: ProjectView,
+    name: 'ProjectDetail',
+    component: () => import('@/views/ProjectDetailView.vue'),
+    meta: { requiresAuth: true }
   },
   {
-    path: '/tasks/:id',
-    name: 'Task',
-    component: TaskView,
-  },
+    path: '/performance',
+    name: 'Performance',
+    component: () => import('@/views/PerformanceView.vue'),
+    meta: { requiresAuth: true }
+  }
 ];
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
+  history: createWebHistory(),
+  routes
+});
+
+router.beforeEach((to, from, next) => {
+  const authStore = useAuthStore();
+  
+  if (to.meta.requiresAuth && !authStore.isAuthenticated()) {
+    next('/login');
+  } else {
+    next();
+  }
 });
 
 export default router;
