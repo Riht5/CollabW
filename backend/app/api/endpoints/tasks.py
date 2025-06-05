@@ -5,6 +5,7 @@ from app.schemas.task import TaskCreate, TaskUpdate, Task as TaskSchema
 from app.models.project import Project as ProjectModel
 from app.models.task import Task as TaskModel
 from app.models.user import User as UserModel
+from app.services.project import update_project_progress
 from app.db.session import get_db
 
 router = APIRouter()
@@ -29,6 +30,7 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+    update_project_progress(db_task.project_id, db)  # 更新项目进度
     return db_task
 
 @router.get("/", response_model=List[TaskSchema])
@@ -36,6 +38,7 @@ def read_tasks(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     """
     获取任务列表
     """
+    print("start")
     tasks = db.query(TaskModel).offset(skip).limit(limit).all()
     return tasks
 
@@ -74,6 +77,7 @@ def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db)):
         setattr(db_task, key, value)
     db.commit()
     db.refresh(db_task)
+    update_project_progress(db_task.project_id, db) # 更新项目进度
     return db_task
 
 @router.delete("/{task_id}", response_model=TaskSchema)
@@ -92,6 +96,7 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     
     db.delete(db_task)
     db.commit()
+    update_project_progress(db_task.project_id, db) # 更新项目进度
     return db_task
 
 @router.post("/{task_id}/assign")

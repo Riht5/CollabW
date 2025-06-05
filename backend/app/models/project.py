@@ -41,6 +41,14 @@ class Project(Base):
         backref="dependents"
     )
 
+    @property
+    def progress(self):
+        """获取项目进度"""
+        if self.progress_records:
+            latest_record = max(self.progress_records, key=lambda x: x.date)
+            return latest_record.progress
+        return 0.0
+
 class ProjectProgress(Base):
     """
     项目进度表模型，记录项目的每日进度。
@@ -54,3 +62,15 @@ class ProjectProgress(Base):
     
     # 关系：进度记录属于某个项目
     project = relationship("Project", backref="progress_records")
+
+# class ProjectProgressRecord(Base):
+#     """
+#     项目剩余进度表模型，记录项目的每日剩余进度和理想剩余进度
+#     """
+#     __tablename__ = 'project_progress_record'
+
+
+#     date = Column(Date, nullable=False, index=True, doc="日期")
+#     remain_progress = Column(Float, nullable=False, doc="剩余进度（%）")
+#     ideal_remain_progress = Column(Float, nullable=False, doc="理想剩余进度（%）")
+

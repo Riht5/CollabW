@@ -56,6 +56,7 @@ export const useTaskStore = defineStore('task', () => {
     try {
       const response = await axios.put(`/api/tasks/${taskId}`, task);
       await fetchTasks(); // 重新获取任务列表
+      console.log("src/stores/tasks.ts updateTask进入")
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to update task';

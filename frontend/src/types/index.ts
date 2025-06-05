@@ -42,6 +42,15 @@ export interface ProjectCreate {
   end_time?: string;
 }
 
+export interface ProjectProgress {
+  id: number;
+  project_id: number;
+  date: string;
+  progress: number;
+
+  project?: Project;
+}
+
 export interface TaskCreate {
   name: string;
   description?: string;
@@ -69,4 +78,14 @@ export interface Register {
 export interface AuthResponse {
   access_token: string;
   token_type: string;
+}
+
+export interface GanttTask {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  progress: number;
+  dependencies: string;
+  custom_class: string;
 }

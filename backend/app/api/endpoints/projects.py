@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import List
 from app.schemas.project import ProjectCreate, Project, ProjectUpdate, ProjectProgress
-from app.models.project import Project as ProjectModel
+from app.models.project import Project as ProjectModel, ProjectProgress as ProjectProgressModel
 from app.db.session import get_db
+from app.services.project import update_project_progress
 from sqlalchemy.orm import Session
+from datetime import date
 
 # 创建路由
 router = APIRouter()
@@ -53,6 +55,7 @@ def update_project(project_id: int, project: ProjectUpdate, db: Session = Depend
         setattr(db_project, key, value)
     db.commit()
     db.refresh(db_project)
+    update_project_progress(project_id, db) # 更新项目进度
     return db_project
 
 @router.delete("/{project_id}", response_model=Project)
@@ -87,24 +90,19 @@ def add_dependencies(
     db.refresh(project)
     return project
 
-@router.post("/{project_id}/progress/", response_model=ProjectProgress)
-def record_project_progress(
-    project_id: int,
-    project_progress: ProjectProgress,
-    db: Session = Depends(get_db)
-):
+@router.get("/{project_id}/progress/", response_model=List[ProjectProgress])
+def read_all_project_progress(project_id: int, db: Session = Depends(get_db)):
     """
-    记录项目某天的进度。
+    获取指定项目ID的所有的进度记录（按日期升序返回）
     """
-    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
-    if not project:
-        raise HTTPException(status_code=404, detail="Project not found")
-    progress = ProjectProgress(
-        project_id=project_id,
-        date=project_progress.date,
-        progress=project_progress.progress
+    progresses = (
+        db
+        .query(ProjectProgressModel)
+        .filter(ProjectProgressModel.project_id == project_id)
+        .order_by(ProjectProgressModel.date.asc())
+        .all()
     )
-    db.add(progress)
-    db.commit()
-    db.refresh(progress)
-    return progress
+    if not progresses:
+        raise HTTPException(status_code=404, detail="No project progress found")
+
+    return progresses

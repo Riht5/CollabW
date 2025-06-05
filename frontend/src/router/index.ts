@@ -41,6 +41,12 @@ const routes = [
     name: 'Performance',
     component: () => import('@/views/PerformanceView.vue'),
     meta: { requiresAuth: true }
+  },
+  {
+    path: '/gantt',
+    name: 'Gantt',
+    component: () => import('@/views/GanttView.vue'),
+    meta: { requiresAuth: true}
   }
 ];
 

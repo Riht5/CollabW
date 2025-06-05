@@ -106,6 +106,19 @@
         </div>
       </div>
 
+      <div v-if="projectProgresses?.length !== 0">
+        <div class="card">
+          <div class="card-header d-flex justify-between align-center">
+            <h2>燃尽图</h2>
+          </div>
+          <div class="card-body">
+            <BurnoutDiagram 
+              :projectProgresses="projectProgresses" 
+            />
+          </div>
+        </div>
+      </div>
+
       <!-- Modals -->
       <UserAssignModal
         v-if="showAssignModal"
@@ -138,15 +151,17 @@ import { useRoute } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
 import { useTaskStore } from '@/stores/task';
 import TaskList from '@/components/tasks/TaskList.vue';
+import BurnoutDiagram from '@/components/tasks/burnoutDiagram.vue';
 import UserAssignModal from '@/components/modals/UserAssignModal.vue';
 import TaskCreateModal from '@/components/modals/TaskCreateModal.vue';
 import TaskEditModal from '@/components/modals/TaskEditModal.vue';
-import type { Project, Task } from '@/types/index';
+import { Project, Task, ProjectProgress} from '@/types/index';
 
 export default defineComponent({
   name: 'ProjectDetailView',
   components: {
     TaskList,
+    BurnoutDiagram,
     UserAssignModal,
     TaskCreateModal,
     TaskEditModal,
@@ -157,6 +172,7 @@ export default defineComponent({
     const taskStore = useTaskStore();
     
     const project = ref<Project | null>(null);
+    const projectProgresses = ref<ProjectProgress[]>([])
     const loading = ref(false);
     const error = ref('');
     const showAssignModal = ref(false);
@@ -195,6 +211,20 @@ export default defineComponent({
         project.value = await projectStore.fetchProjectById(projectId);
       } catch (err: any) {
         error.value = err.message || '加载项目失败';
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    const fetchProjectProgress = async () => {
+      loading.value = true;
+      error.value = '';
+      try {
+        const projectId = route.params.id as string;
+        projectProgresses.value = await projectStore.fetchProjectProgress(projectId);
+        console.log('src/views/ProjectDetailView fetchProjectProgress: ', projectProgresses.value || []);
+      } catch (err: any) {
+        error.value = err.message || '加载项目进程失败';
       } finally {
         loading.value = false;
       }
@@ -257,10 +287,14 @@ export default defineComponent({
       fetchProject();
     };
 
-    onMounted(fetchProject);
+    onMounted(() => {
+      fetchProject()
+      fetchProjectProgress()
+    })
 
     return {
       project,
+      projectProgresses,
       loading,
       error,
       showAssignModal,

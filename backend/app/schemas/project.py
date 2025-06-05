@@ -2,6 +2,7 @@ from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
 import enum
+from .task import Task
 
 class ProjectStatus(str, enum.Enum):
     pending = "pending"
@@ -33,6 +34,8 @@ class ProjectUpdate(BaseModel):
 class Project(ProjectBase):
     """项目输出模型"""
     id: int
+    tasks: Optional[List[Task]] = []
+    progress: Optional[float] = None
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +45,8 @@ class ProjectList(BaseModel):
 
 class ProjectProgress(BaseModel):
     """项目进度输出模型"""
+    id: Optional[int] = None
+    project_id: int
     date: date
     progress: float
 
