@@ -34,6 +34,7 @@ class ProjectUpdate(BaseModel):
 class Project(ProjectBase):
     """项目输出模型"""
     id: int
+    progress: Optional[float] = None
     tasks: Optional[List[Task]] = []
     progress: Optional[float] = None
 
@@ -45,6 +46,8 @@ class ProjectList(BaseModel):
 
 class ProjectProgress(BaseModel):
     """项目进度输出模型"""
+    id: Optional[int] = None
+    project_id: int
     id: Optional[int] = None
     project_id: int
     date: date
