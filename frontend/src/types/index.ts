@@ -70,3 +70,13 @@ export interface AuthResponse {
   access_token: string;
   token_type: string;
 }
+
+export interface GanttTask {
+  id: string;
+  name: string;
+  start: string;
+  end: string;
+  progress: number;
+  dependencies: string;
+  custom_class: string;
+}

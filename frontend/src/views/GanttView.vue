@@ -11,15 +11,11 @@
     </div>
     <div class="dashboard-content">
       <div class="content-section">
-        <h2>固定数据甘特图</h2>
-        <GanttChart />
-      </div>
-      <div class="content-section">
-        <h2>API 数据甘特图</h2>
+        <h2>项目甘特图</h2>
         <GanttChartTest />
       </div>
       <div class="content-section">
-        <h2>关键路径甘特图</h2>
+        <h2>关键路径</h2>
         <CriticalPathChart />
       </div>
     </div>
@@ -27,18 +23,17 @@
 </template>
 
 <script lang="ts" setup>
-import GanttChart from '../components/projects/GanttChart.vue';
-import GanttChartTest from '../components/projects/GanttChartTest.vue';
-import CriticalPathChart from '../components/projects/CriticalPathChart.vue';
-import { useProjectStore } from '@/stores/project';
+import GanttChartTest from '../components/gantt/GanttChart.vue';
+import CriticalPathChart from '../components/gantt/CriticalPathChart.vue';
+import { useGanttStore } from '@/stores/gantt';
 import { onMounted } from 'vue';
 
-const projectStore = useProjectStore();
+const ganttStore = useGanttStore();
 
 onMounted(async () => {
-  await projectStore.fetchGanttData();
+  await ganttStore.fetchGanttData();
   try {
-    await projectStore.fetchCriticalPath();
+    await ganttStore.fetchCriticalPath();
   } catch (err) {
     console.error('Failed to fetch critical path:', err);
   }

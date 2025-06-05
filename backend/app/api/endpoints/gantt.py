@@ -6,8 +6,6 @@ import networkx as nx
 
 from app.db.session import get_db
 from app.models.project import Project as ProjectModel, ProjectStatus
-from app.models.user import User
-from app.api.dependencies import get_current_user
 from app.schemas.gantt import GanttProject, CriticalPathResponse
 
 router = APIRouter()
@@ -16,8 +14,8 @@ def get_dependency_end_time(project: ProjectModel, db: Session, visited=None) ->
     """获取项目依赖中最晚的结束时间，递归处理依赖"""
     if visited is None:
         visited = set()
-    if project.id in visited:  # 防止循环依赖
-        return datetime.strptime("2025-06-01", "%Y-%m-%d")
+    if project.id in visited:
+        raise ValueError(f"Circular dependency detected for project {project.id}")
     visited.add(project.id)
 
     if not project.dependencies:
@@ -39,8 +37,8 @@ def get_dependency_end_time(project: ProjectModel, db: Session, visited=None) ->
     visited.remove(project.id)
     return max(end_times) if end_times else datetime.strptime("2025-06-01", "%Y-%m-%d")
 
-@router.get("/gantt-data", response_model=List[GanttProject])
-def get_gantt_data(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+@router.get("/project-data", response_model=List[GanttProject])
+def get_gantt_data(db: Session = Depends(get_db)):
     projects = db.query(ProjectModel).all()
     gantt_data = []
 
@@ -88,7 +86,7 @@ def get_gantt_data(db: Session = Depends(get_db), current_user: User = Depends(g
     return gantt_data
 
 @router.get("/critical-path", response_model=CriticalPathResponse)
-def get_critical_path(db: Session = Depends(get_db), current_user: User = Depends(get_current_user)):
+def get_critical_path(db: Session = Depends(get_db)):
     projects = db.query(ProjectModel).all()
     
     G = nx.DiGraph()

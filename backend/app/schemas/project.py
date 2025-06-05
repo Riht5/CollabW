@@ -33,6 +33,7 @@ class ProjectUpdate(BaseModel):
 class Project(ProjectBase):
     """项目输出模型"""
     id: int
+    progress: Optional[float] = None
 
     model_config = {"from_attributes": True}
 
@@ -42,6 +43,8 @@ class ProjectList(BaseModel):
 
 class ProjectProgress(BaseModel):
     """项目进度输出模型"""
+    id: Optional[int] = None
+    project_id: int
     date: date
     progress: float
 

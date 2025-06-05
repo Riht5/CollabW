@@ -11,7 +11,7 @@
   },
   "dependencies": {
     "axios": "",
-    "frappe-gantt": "^1.0.3",
+    "frappe-gantt": "",
     "pinia": "",
     "vue": "",
     "vue-router": ""

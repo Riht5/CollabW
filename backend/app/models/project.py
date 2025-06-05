@@ -41,6 +41,14 @@ class Project(Base):
         backref="dependents"
     )
 
+    @property
+    def progress(self):
+        """获取项目进度"""
+        if self.progress_records:
+            latest_record = max(self.progress_records, key=lambda x: x.date)
+            return latest_record.progress
+        return 0.0
+
 class ProjectProgress(Base):
     """
     项目进度表模型，记录项目的每日进度。
