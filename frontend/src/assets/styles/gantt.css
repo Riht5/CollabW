@@ -1,0 +1,16 @@
+/* frontend/src/assets/styles/gantt.css */
+@import url('../../../node_modules/frappe-gantt/dist/frappe-gantt.css');
+.gantt-container {
+  font-family: 'Arial', sans-serif;
+  width: 100%;
+  height: 700px;
+  overflow: hidden;
+  position: relative;
+  z-index: 1;
+}
+.gantt {
+  background: #fff !important;
+}
+.gantt .bar-wrapper {
+  position: relative !important;
+}
