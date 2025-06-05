@@ -11,13 +11,14 @@
   },
   "dependencies": {
     "axios": "",
+    "frappe-gantt": "^1.0.3",
     "pinia": "",
     "vue": "",
     "vue-router": ""
   },
   "devDependencies": {
-    "@vitejs/plugin-vue": "",
     "@types/node": "",
+    "@vitejs/plugin-vue": "",
     "eslint": "",
     "typescript": "",
     "vite": ""

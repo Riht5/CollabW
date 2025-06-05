@@ -13,15 +13,30 @@
         <i class="icon">🏆</i>
         <span>绩效看板</span>
       </router-link>
+      <router-link to="/gantt" class="nav-item" :class="{ active: $route.name === 'Gantt' }">
+        <i class="icon">📅</i>
+        <span>甘特图</span>
+      </router-link>
     </nav>
   </aside>
 </template>
 
 <script lang="ts">
-import { defineComponent } from 'vue';
+import { defineComponent, computed } from 'vue';
+import { useAuthStore } from '@/stores/auth';
 
 export default defineComponent({
   name: 'Sidebar',
+  setup() {
+    const authStore = useAuthStore();
+    const isDirectorOrManager = computed(() => {
+      return ['director', 'manager'].includes(authStore.userRole);
+    });
+
+    return {
+      isDirectorOrManager
+    };
+  }
 });
 </script>
 
