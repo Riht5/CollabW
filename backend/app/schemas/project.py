@@ -48,8 +48,6 @@ class ProjectProgress(BaseModel):
     """项目进度输出模型"""
     id: Optional[int] = None
     project_id: int
-    id: Optional[int] = None
-    project_id: int
     date: date
     progress: float
 
