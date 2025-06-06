@@ -15,7 +15,7 @@
     </div>
     <div class="dashboard-content">
       <div class="content-section">
-        <h2>项目网格</h2>
+        <h2>项目总览</h2>
         <GanttChartTest />
       </div>
       <Suspense v-if="showCriticalPath">
