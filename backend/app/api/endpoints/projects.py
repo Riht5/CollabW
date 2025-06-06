@@ -1,11 +1,14 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import List
-from app.schemas.project import ProjectCreate, Project, ProjectUpdate
 from app.models.project import Project as ProjectModel
+from app.models.task import Task as TaskModel
+from app.models.user import User as UserModel
+from app.schemas.project import ProjectCreate, Project, ProjectUpdate
+from app.schemas.task import Task as TaskSchema
+from app.schemas.user import User as UserSchema
 from app.db.session import get_db
 from app.services.project import update_project_progress
 from sqlalchemy.orm import Session
-from datetime import date
 
 # 创建路由
 router = APIRouter()
@@ -89,3 +92,33 @@ def add_dependencies(
     db.commit()
     db.refresh(project)
     return project
+
+@router.get("/{project_id}/tasks", response_model=List[TaskSchema])
+def get_project_tasks(project_id: int, db: Session = Depends(get_db)):
+    """
+    获取指定项目的所有任务
+    """    
+    # 验证项目是否存在
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # 获取项目的所有任务
+    tasks = db.query(TaskModel).filter(TaskModel.project_id == project_id).all()
+    return tasks
+
+@router.get("/{project_id}/members", response_model=List[UserSchema])
+def get_project_members(project_id: int, db: Session = Depends(get_db)):
+    """
+    获取指定项目的所有成员
+    """
+    # 验证项目是否存在
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if not project:
+        raise HTTPException(status_code=404, detail="Project not found")
+    
+    # 通过任务获取项目成员
+    task_ids = db.query(TaskModel.id).filter(TaskModel.project_id == project_id).subquery()
+    members = db.query(UserModel).filter(UserModel.task_id.in_(task_ids)).distinct().all()
+    
+    return members

@@ -39,6 +39,9 @@
             <button @click="$emit('edit', task)" class="btn btn-primary btn-sm">
               编辑
             </button>
+            <button @click="$emit('assign-members', task)" class="btn btn-success btn-sm">
+              分配成员
+            </button>
             <button @click="$emit('toggle-status', task.id)" class="btn btn-secondary btn-sm">
               {{ task.finished ? '标记未完成' : '标记完成' }}
             </button>
@@ -68,7 +71,7 @@ export default defineComponent({
       default: true
     }
   },
-  emits: ['edit', 'delete', 'toggle-status'],
+  emits: ['edit', 'delete', 'toggle-status', 'assign-members'],
   setup() {
     const getWorkloadText = (workload: string) => {
       const workloadMap: Record<string, string> = {
@@ -179,6 +182,12 @@ export default defineComponent({
 
 .btn-danger {
   background-color: #dc3545;
+  color: white;
+  border: none;
+}
+
+.btn-success {
+  background-color: #28a745;
   color: white;
   border: none;
 }

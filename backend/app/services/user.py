@@ -98,9 +98,10 @@ def calculate_all_users_performance(db: Session) -> None:
     
     # 计算每个用户的performance
     for user in all_users:
-        performance = calculate_user_performance(user.id, db)
-        user.performance = performance
-        user_performances.append((user.id, performance))
+        if user.role == "user":
+            performance = calculate_user_performance(user.id, db)
+            user.performance = performance
+            user_performances.append((user.id, performance))
     
     # 按performance降序排序
     user_performances.sort(key=lambda x: x[1], reverse=True)

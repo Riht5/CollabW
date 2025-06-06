@@ -2,11 +2,23 @@
   <div class="modal-overlay" @click="closeModal">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
-        <h2>分配项目成员</h2>
+        <h2>为任务"{{ preSelectedTask.name }}"分配成员</h2>
         <button @click="closeModal" class="close-btn">×</button>
       </div>
       
       <div class="modal-body">
+        <!-- 显示当前选中的任务信息 -->
+        <div class="selected-task-info">
+          <h3>任务信息</h3>
+          <div class="task-info-card">
+            <h4>{{ preSelectedTask.name }}</h4>
+            <p>{{ preSelectedTask.description || '无描述' }}</p>
+            <span class="workload-badge" :class="preSelectedTask.workload">
+              {{ getWorkloadText(preSelectedTask.workload) }}
+            </span>
+          </div>
+        </div>
+
         <div class="search-section">
           <input
             type="text"
@@ -32,7 +44,7 @@
                 <p>{{ user.email }}</p>
                 <span class="role-badge" :class="user.role">{{ getRoleText(user.role) }}</span>
               </div>
-              <div class="checkbox">
+              <div class="checkbox" @click.stop>
                 <input 
                   type="checkbox" 
                   :checked="isUserSelected(user.id)"
@@ -60,8 +72,12 @@
       
       <div class="modal-footer">
         <button @click="closeModal" class="btn btn-secondary">取消</button>
-        <button @click="assignUsers" class="btn btn-primary" :disabled="loading || selectedUsers.length === 0">
-          {{ loading ? '分配中...' : `分配用户 (${selectedUsers.length})` }}
+        <button 
+          @click="assignUsers" 
+          class="btn btn-primary" 
+          :disabled="loading || selectedUsers.length === 0"
+        >
+          {{ loading ? '分配中...' : `分配到任务 (${selectedUsers.length})` }}
         </button>
       </div>
     </div>
@@ -69,10 +85,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted } from 'vue';
+import { defineComponent, ref, computed, onMounted, toRef } from 'vue';
 import { useUserStore } from '@/stores/user';
+import { useTaskStore } from '@/stores/task';
 import { useProjectStore } from '@/stores/project';
-import type { User } from '@/types/index';
+import type { User, Task } from '@/types/index';
 
 export default defineComponent({
   name: 'UserAssignModal',
@@ -85,10 +102,15 @@ export default defineComponent({
       type: Array as () => User[],
       default: () => [],
     },
+    preSelectedTask: {
+      type: Object as () => Task,
+      required: true,
+    },
   },
   emits: ['close', 'assigned'],
   setup(props, { emit }) {
     const userStore = useUserStore();
+    const taskStore = useTaskStore();
     const projectStore = useProjectStore();
     
     const loading = ref(false);
@@ -120,6 +142,15 @@ export default defineComponent({
       return roleMap[role] || role;
     };
 
+    const getWorkloadText = (workload: string) => {
+      const workloadMap: Record<string, string> = {
+        'light': '轻量',
+        'medium': '中等',
+        'heavy': '重量'
+      };
+      return workloadMap[workload] || workload;
+    };
+
     const isUserSelected = (userId: number) => {
       return selectedUsers.value.includes(userId);
     };
@@ -149,29 +180,32 @@ export default defineComponent({
       
       loading.value = true;
       try {
-        await projectStore.assignUsersToProject(props.projectId, selectedUsers.value);
+        // 直接使用预选任务的ID
+        await taskStore.assignUsersToTask(props.preSelectedTask.id, selectedUsers.value);
         emit('assigned');
       } catch (error) {
-        console.error('分配用户失败:', error);
+        console.error('分配用户到任务失败:', error);
       } finally {
         loading.value = false;
       }
-    };
-
-    const closeModal = () => {
-      emit('close');
     };
 
     onMounted(() => {
       userStore.fetchUsers();
     });
 
+    const closeModal = () => {
+      emit('close');
+    };
+
     return {
       loading,
       searchQuery,
       selectedUsers,
+      preSelectedTask: toRef(props, 'preSelectedTask'),
       filteredUsers,
       getRoleText,
+      getWorkloadText,
       isUserSelected,
       toggleUser,
       removeUser,
@@ -246,6 +280,28 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   gap: 24px;
+}
+
+.selected-task-info {
+  margin-bottom: 24px;
+}
+
+.task-info-card {
+  background: #f8f9fa;
+  padding: 16px;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.task-info-card h4 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+}
+
+.task-info-card p {
+  margin: 0 0 12px 0;
+  color: #666;
+  font-size: 14px;
 }
 
 .search-input {

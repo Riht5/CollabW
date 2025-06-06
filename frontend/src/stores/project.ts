@@ -21,15 +21,15 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
-  const fetchProjectById = async (id: number | string) => {
+  const fetchProjectById = async (projectId: string | number) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/projects/${id}`);
-      return response.data as Project;
+      const response = await axios.get(`/api/projects/${projectId}`);
+      return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch project';
-      return null;
+      throw err;
     } finally {
       loading.value = false;
     }
@@ -125,6 +125,34 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
+  const fetchProjectTasks = async (projectId: string | number) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await axios.get(`/api/projects/${projectId}/tasks`);
+      return response.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch project tasks';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchProjectMembers = async (projectId: string | number) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await axios.get(`/api/projects/${projectId}/members`);
+      return response.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch project members';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   return {
     projects,
     loading,
@@ -136,6 +164,8 @@ export const useProjectStore = defineStore('project', () => {
     deleteProject,
     addDependencies,
     assignUsersToProject,
-    removeUserFromProject
+    removeUserFromProject,
+    fetchProjectTasks,
+    fetchProjectMembers,
   };
 });
