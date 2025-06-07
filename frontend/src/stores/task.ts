@@ -20,6 +20,19 @@ export const useTaskStore = defineStore('task', () => {
       loading.value = false;
     }
   };
+  //获取当前用户任务
+   const fetchUserTasks = async () => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await axios.get('/api/users/me/tasks');
+      tasks.value = response.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch user tasks';
+    } finally {
+      loading.value = false;
+    }
+  };
 
   const getTaskById = async (taskId: number | string) => {
     loading.value = true;
@@ -122,3 +135,7 @@ export const useTaskStore = defineStore('task', () => {
     unassignUserFromTask
   };
 });
+
+
+
+
