@@ -94,6 +94,7 @@
             @delete="deleteTask"
             @toggle-status="toggleTaskStatus"
             @assign-members="assignMembersToTask"
+            @update-task="handleTaskUpdate"
           />
         </div>
       </div>
@@ -120,6 +121,7 @@
         :task="editingTask"
         @close="showEditTaskModal = false"
         @updated="handleTaskUpdated"
+        @deleted="handleTaskDeleted"
       />
     </div>
   </div>
@@ -236,13 +238,10 @@ export default defineComponent({
       }
     };
 
-    const toggleTaskStatus = async (taskId: number) => {
+    const toggleTaskStatus = async (task: Task) => {
       try {
-        const task = project.value?.tasks?.find(t => t.id === taskId);
-        if (task) {
-          await taskStore.updateTask(taskId, { finished: !task.finished });
-          await fetchProject();
-        }
+        await taskStore.updateTask(task.id, { finished: !task.finished });
+        await fetchProject();
       } catch (err) {
         console.error('更新任务状态失败:', err);
       }
@@ -253,10 +252,11 @@ export default defineComponent({
       showAssignModal.value = true;
     };
 
-    const handleUserAssigned = () => {
+    const handleUserAssigned = async () => {
       showAssignModal.value = false;
       selectedTask.value = null;
-      fetchProject();
+      // 重新获取项目数据以更新任务成员信息
+      await fetchProject();
     };
 
     const handleTaskCreated = () => {
@@ -268,6 +268,47 @@ export default defineComponent({
       showEditTaskModal.value = false;
       editingTask.value = null;
       fetchProject();
+    };
+
+    const handleTaskDeleted = () => {
+      showEditTaskModal.value = false;
+      editingTask.value = null;
+      fetchProject();
+    };
+
+    const handleTaskUpdate = async (taskId: number, updateData: Partial<Task>) => {
+      try {
+        await taskStore.updateTask(taskId, updateData);
+        // 更新本地数据
+        const taskIndex = projectTasks.value.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+          projectTasks.value[taskIndex] = { ...projectTasks.value[taskIndex], ...updateData };
+        }
+        console.log('任务更新成功:', updateData);
+      } catch (err) {
+        console.error('更新任务失败:', err);
+        // 如果更新失败，重新获取数据
+        await fetchProject();
+      }
+    };
+
+    const handleTaskReorder = async (reorderedTasks: Task[]) => {
+      try {
+        // 更新本地状态
+        projectTasks.value = reorderedTasks;
+        
+        // 可以在这里调用API更新服务器端的任务顺序
+        // await taskStore.updateTaskOrder(reorderedTasks.map((task, index) => ({
+        //   id: task.id,
+        //   order: index
+        // })));
+        
+        console.log('任务顺序已更新:', reorderedTasks.map(t => t.name));
+      } catch (err) {
+        console.error('更新任务顺序失败:', err);
+        // 如果更新失败，重新获取数据
+        await fetchProject();
+      }
     };
 
     const goBackToProjects = () => {
@@ -299,6 +340,9 @@ export default defineComponent({
       handleUserAssigned,
       handleTaskCreated,
       handleTaskUpdated,
+      handleTaskDeleted,
+      handleTaskUpdate,
+      handleTaskReorder,
       goBackToProjects,
     };
   },

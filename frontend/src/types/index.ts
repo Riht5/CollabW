@@ -19,7 +19,6 @@ export interface Task {
   finished: boolean;
   project_id: number;
   head_id?: number;
-  head?: User;
 }
 
 export interface User {

@@ -1,13 +1,15 @@
 :root {
   /* 颜色变量 */
   --primary-color: #3498db;
-  --primary-hover: #2980b9;
+  --primary-hover: #0056b3;
   --secondary-color: #95a5a6;
   --secondary-hover: #7f8c8d;
   --danger-color: #e74c3c;
-  --danger-hover: #c0392b;
+  --danger-hover: #c82333;
   --success-color: #27ae60;
+  --success-hover: #218838;
   --warning-color: #f39c12;
+  --warning-hover: #e0a800;
   
   /* 文本颜色 */
   --text-primary: #2c3e50;

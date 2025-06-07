@@ -1,3 +1,4 @@
+<!-- frontend/src/components/gantt/GanttChart.vue -->
 <template>
   <div class="gantt-wrapper" ref="wrapperRef">
     <div class="gantt-toolbar">
@@ -49,7 +50,7 @@
 </template>
 
 <script lang="ts" setup>
-import { onMounted, onUnmounted, nextTick, ref, watchEffect, computed } from 'vue';
+import { onMounted, onUnmounted, onActivated, ref, computed, watch } from 'vue';
 import Gantt from 'frappe-gantt';
 import { useGanttStore } from '@/stores/gantt';
 import type { GanttTask } from '@/types/index';
@@ -58,7 +59,7 @@ const ganttStore = useGanttStore();
 const gantt = ref<Gantt | null>(null);
 const ganttContainer = ref<HTMLElement | null>(null);
 const wrapperRef = ref<HTMLElement | null>(null);
-const currentViewMode = ref<string>('Week');
+const currentViewMode = ref<string>('Day'); // 默认 Day
 const showViewModeDropdown = ref<boolean>(false);
 const viewModes: string[] = ['Day', 'Week', 'Month', 'Year'];
 
@@ -76,60 +77,48 @@ const getViewModeText = (mode: string): string => {
 // 优化的任务填充函数
 const padGanttTasks = (tasks: GanttTask[], minRows = 6): GanttTask[] => {
   if (tasks.length >= minRows) return tasks;
-  
-  const baseDate = tasks.length > 0 ? tasks[0].start : new Date().toISOString().split('T')[0];
-  const placeholders = Array.from({ length: minRows - tasks.length }).map((_, i) => ({
+  const validTasks = tasks.filter(task => task.id && !task.id.startsWith('__placeholder_'));
+  const minDate = validTasks.length ? validTasks.reduce((min, task) => {
+    const start = new Date(task.start);
+    return start < min ? start : min;
+  }, new Date(validTasks[0].start)) : new Date();
+  const placeholders = Array.from({ length: minRows - validTasks.length }).map((_, i) => ({
     id: `__placeholder_${i}`,
     name: '',
-    start: baseDate,
-    end: baseDate,
+    start: minDate.toISOString().split('T')[0],
+    end: minDate.toISOString().split('T')[0],
     progress: 0,
     dependencies: '',
     custom_class: 'placeholder-task'
   }));
-  
-  return [...tasks, ...placeholders];
+  return [...validTasks, ...placeholders];
 };
 
 // 动态计算容器高度
 const containerHeight = computed(() => {
   const taskCount = Math.max(6, ganttStore.ganttAllData.length);
-  const rowHeight = 50; // 增加行高以改善视觉效果
+  const rowHeight = 50;
   const headerHeight = 120;
   const minHeight = 400;
-  
   return Math.max(minHeight, taskCount * rowHeight + headerHeight);
 });
 
-// 获取时间轴范围
+// 获取时间轴范围，参考旧版固定年度
 const getTimelineRange = () => {
-  if (!ganttStore.ganttAllData.length) {
+  const tasks = ganttStore.ganttAllData;
+  if (!tasks.length) {
     const currentYear = new Date().getFullYear();
     return { startDate: `${currentYear}-01-01`, endDate: `${currentYear}-12-31` };
   }
-  
-  const dates = ganttStore.ganttAllData.flatMap(task => [
-    new Date(task.start),
-    new Date(task.end)
-  ]);
-  
-  const minDate = new Date(Math.min(...dates.map(d => d.getTime())));
-  const maxDate = new Date(Math.max(...dates.map(d => d.getTime())));
-  
-  // 添加一些缓冲时间
-  minDate.setMonth(minDate.getMonth() - 1);
-  maxDate.setMonth(maxDate.getMonth() + 1);
-  
-  return {
-    startDate: minDate.toISOString().split('T')[0],
-    endDate: maxDate.toISOString().split('T')[0]
-  };
+  const taskYears = tasks.map((task: GanttTask) => new Date(task.start).getFullYear());
+  const minYear = Math.min(...taskYears);
+  return { startDate: `${minYear}-01-01`, endDate: `${minYear}-12-31` };
 };
 
 const scrollToToday = () => {
   if (gantt.value) {
     gantt.value.scroll_current();
-    console.log('Scrolled to today');
+    console.log('滚动至今天');
   }
 };
 
@@ -138,59 +127,28 @@ const toggleViewModeDropdown = () => {
 };
 
 const changeViewMode = (mode: string) => {
-  if (gantt.value) {
-    try {
-      gantt.value.change_view_mode(mode);
-      currentViewMode.value = mode;
-      showViewModeDropdown.value = false;
-      console.log('View changed to:', mode);
-      gantt.value.refresh(padGanttTasks(ganttStore.ganttAllData));
-    } catch (err) {
-      console.error('Failed to change view mode:', err);
-    }
-  } else {
-    console.warn('Gantt instance not initialized');
-  }
-};
-
-const refreshGantt = async () => {
-  if (gantt.value) {
-    await ganttStore.fetchGanttData();
-    if (ganttStore.ganttAllData.length > 0) {
-      gantt.value.refresh(padGanttTasks(ganttStore.ganttAllData));
-      console.log('Gantt refreshed:', ganttStore.ganttAllData);
-    }
-  }
-};
-
-// 优化的甘特图初始化
-const initializeGantt = () => {
   if (!ganttContainer.value || !ganttStore.ganttAllData.length) {
-    console.warn('Gantt container or data not ready');
+    console.warn('甘特图容器或数据未就绪');
     return;
   }
-  
-  ganttContainer.value.innerHTML = '';
-  
   try {
+    ganttContainer.value.innerHTML = '';
+    gantt.value = null;
     const { startDate } = getTimelineRange();
     const tasksWithPadding = padGanttTasks(ganttStore.ganttAllData);
-    
     gantt.value = new Gantt(ganttContainer.value, tasksWithPadding, {
-      view_mode: currentViewMode.value,
+      view_mode: mode,
       date_format: 'YYYY-MM-DD',
       bar_height: 32,
       padding: 24,
-      column_width: 120,
+      column_width: mode === 'Day' ? 30 : mode === 'Week' ? 50 : mode === 'Month' ? 100 : 150,
       scroll_to: startDate,
       language: 'zh-cn',
       custom_popup_html: (task: GanttTask) => {
         if (task.custom_class?.includes('placeholder')) return '';
-        
         const startDate = new Date(task.start).toLocaleDateString('zh-CN');
         const endDate = new Date(task.end).toLocaleDateString('zh-CN');
         const duration = Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24));
-        
         return `
           <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
             <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name}</h4>
@@ -213,7 +171,81 @@ const initializeGantt = () => {
         console.log('进度变更:', task.name, progress);
       }
     });
-    
+    currentViewMode.value = mode;
+    showViewModeDropdown.value = false;
+    console.log('视图切换至:', mode);
+  } catch (err) {
+    console.error('视图切换失败:', err);
+    ganttStore.error = '视图切换失败，请刷新页面重试';
+  }
+};
+
+const refreshGantt = async () => {
+  try {
+    await ganttStore.fetchGanttData();
+    console.log('刷新甘特图数据:', ganttStore.ganttAllData);
+    if (ganttStore.ganttAllData.length > 0) {
+      if (gantt.value) {
+        gantt.value.refresh(padGanttTasks(ganttStore.ganttAllData));
+        console.log('甘特图刷新成功:', ganttStore.ganttAllData);
+      } else {
+        console.warn('Gantt 实例未初始化，重新初始化');
+        initializeGantt();
+      }
+    }
+  } catch (err) {
+    console.error('刷新甘特图数据失败:', err);
+    ganttStore.error = '刷新甘特图数据失败，请重试';
+  }
+};
+
+// 优化的甘特图初始化
+const initializeGantt = () => {
+  if (!ganttContainer.value || !ganttStore.ganttAllData.length) {
+    console.warn('甘特图容器或数据未就绪');
+    return;
+  }
+  ganttContainer.value.innerHTML = '';
+  gantt.value = null;
+  try {
+    const { startDate } = getTimelineRange();
+    const tasksWithPadding = padGanttTasks(ganttStore.ganttAllData);
+    gantt.value = new Gantt(ganttContainer.value, tasksWithPadding, {
+      view_mode: currentViewMode.value,
+      date_format: 'YYYY-MM-DD',
+      bar_height: 32,
+      padding: 24,
+      column_width: currentViewMode.value === 'Day' ? 30 : currentViewMode.value === 'Week' ? 50 : currentViewMode.value === 'Month' ? 100 : 150,
+      scroll_to: startDate,
+      language: 'zh-cn',
+      infinite_padding: false, // 限制无限扩展
+      custom_popup_html: (task: GanttTask) => {
+        if (task.custom_class?.includes('placeholder')) return '';
+        const startDate = new Date(task.start).toLocaleDateString('zh-CN');
+        const endDate = new Date(task.end).toLocaleDateString('zh-CN');
+        const duration = Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24));
+        return `
+          <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
+            <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name}</h4>
+            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">开始: ${startDate}</p>
+            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">结束: ${endDate}</p>
+            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">工期: ${duration} 天</p>
+            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${task.progress}%</p>
+          </div>
+        `;
+      },
+      on_click: (task: GanttTask) => {
+        if (!task.custom_class?.includes('placeholder')) {
+          console.log('点击任务:', task);
+        }
+      },
+      on_date_change: (task: GanttTask, start: string, end: string) => {
+        console.log('日期变更:', task.name, start, end);
+      },
+      on_progress_change: (task: GanttTask, progress: number) => {
+        console.log('进度变更:', task.name, progress);
+      }
+    });
     console.log('甘特图初始化成功');
   } catch (err) {
     console.error('甘特图初始化失败:', err);
@@ -222,23 +254,44 @@ const initializeGantt = () => {
 };
 
 onMounted(async () => {
-  console.log('GanttChartTest mounted');
-  await nextTick();
-  await ganttStore.fetchGanttData();
-});
-
-watchEffect(() => {
-  if (ganttStore.ganttAllData.length && ganttContainer.value) {
-    initializeGantt();
+  console.log('项目甘特图组件挂载');
+  try {
+    await ganttStore.fetchGanttData();
+    console.log('获取甘特图数据:', ganttStore.ganttAllData);
+  } catch (err) {
+    console.error('获取甘特图数据失败:', err);
+    ganttStore.error = '加载甘特图数据失败，请检查网络';
   }
 });
+
+onActivated(async () => {
+  console.log('项目甘特图组件激活');
+  try {
+    await ganttStore.fetchGanttData();
+    console.log('激活时获取甘特图数据:', ganttStore.ganttAllData);
+  } catch (err) {
+    console.error('激活时获取甘特图数据失败:', err);
+    ganttStore.error = '加载甘特图数据失败，请检查网络';
+  }
+});
+
+watch(
+  () => [ganttStore.ganttAllData, ganttContainer.value],
+  ([newData, container]) => {
+    console.log('Watch 触发，数据长度:', newData.length, '容器:', !!container, 'Gantt 实例:', !!gantt.value);
+    if (newData.length && container) {
+      initializeGantt();
+    }
+  },
+  { immediate: true }
+);
 
 onUnmounted(() => {
   gantt.value = null;
   if (ganttContainer.value) {
     ganttContainer.value.innerHTML = '';
   }
-  console.log('GanttChartTest unmounted');
+  console.log('项目甘特图组件卸载');
 });
 </script>
 
@@ -340,12 +393,14 @@ onUnmounted(() => {
   overflow-x: auto;
   overflow-y: hidden;
   flex-grow: 1; /* Fill remaining space */
+  position: relative;
 }
 .gantt-container {
   width: 100%;
   min-width: 1200px;
   height: 100%; /* Fill scroll container */
   position: relative;
+  overflow: hidden; /* 防止内部溢出 */
 }
 .gantt-scroll-container::-webkit-scrollbar {
   height: 10px;

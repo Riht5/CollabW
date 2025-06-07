@@ -55,11 +55,11 @@ def read_user(user_id: int, db: Session = Depends(get_db)):
     return user
 
 @router.get("/", response_model=List[UserSchema])
-def read_users(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def read_users(db: Session = Depends(get_db)):
     """
     获取用户列表（仅返回普通用户）。
     """
-    users = db.query(UserModel).filter(UserModel.role == "user").offset(skip).limit(limit).all()
+    users = db.query(UserModel).filter(UserModel.role == "user").all()
     return users
 
 @router.put("/{user_id}", response_model=UserSchema)
@@ -99,11 +99,7 @@ def get_user_task(user_id: int, db: Session = Depends(get_db)):
     if not user:
         raise HTTPException(status_code=404, detail="User not found")
     
-    if not user.task_id:
-        return {"task": None}
-    
-    task = db.query(TaskModel).filter(TaskModel.id == user.task_id).first()
-    return {"task": task}
+    return {"task": user.task_id}
 
 @router.get("/{user_id}/headed-task", response_model=dict)
 def get_user_headed_task(user_id: int, db: Session = Depends(get_db)):

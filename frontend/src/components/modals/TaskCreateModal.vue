@@ -36,16 +36,16 @@
               <label class="form-label required" for="workload">工作量</label>
               <select class="form-select" id="workload" v-model="form.workload" required>
                 <option value="">请选择工作量</option>
-                <option value="light">轻量 (权重: 1)</option>
-                <option value="medium">中等 (权重: 2)</option>
-                <option value="heavy">重量 (权重: 3)</option>
+                <option value="light">轻量</option>
+                <option value="medium">中等</option>
+                <option value="heavy">困难</option>
               </select>
             </div>
             
             <div class="form-group">
               <label class="form-label" for="head">任务负责人</label>
               <select class="form-select" id="head" v-model="form.head_id">
-                <option value="">请选择负责人</option>
+                <option :value="null">不分配负责人</option>
                 <option 
                   v-for="user in availableUsers" 
                   :key="user.id" 
@@ -105,7 +105,7 @@ export default defineComponent({
     const form = reactive<TaskCreate>({
       name: '',
       description: '',
-      workload: 'medium' as 'light' | 'medium' | 'heavy',
+      workload: 'light' as 'light' | 'medium' | 'heavy',
       finished: false,
       project_id: props.projectId,
       head_id: undefined,

@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
-import type { Project, ProjectCreate } from '@/types/index';
+import type { Project, ProjectCreate, Task } from '@/types/index';
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([]);
@@ -125,7 +125,7 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
-  const fetchProjectTasks = async (projectId: string | number) => {
+  const fetchProjectTasks = async (projectId: string | number): Promise<Task[]> => {
     loading.value = true;
     error.value = null;
     try {

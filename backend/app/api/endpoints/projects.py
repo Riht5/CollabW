@@ -25,13 +25,11 @@ def create_project(project: ProjectCreate, db: Session = Depends(get_db)):
     return db_project
 
 @router.get("/", response_model=List[Project])
-def read_projects(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def read_projects(db: Session = Depends(get_db)):
     """
     获取项目列表。
-    - 参数: skip（跳过数量），limit（返回数量），db（数据库会话）
-    - 返回: 项目对象列表
     """
-    projects = db.query(ProjectModel).offset(skip).limit(limit).all()
+    projects = db.query(ProjectModel).all()
     return projects
 
 @router.get("/{project_id}", response_model=Project)
