@@ -26,6 +26,7 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
         head = db.query(UserModel).filter(UserModel.id == task.head_id).first()
         if not head:
             raise HTTPException(status_code=404, detail="Head user not found")
+        head.task_id = task.id  # 设置负责人任务ID
     
     db_task = TaskModel(**task.model_dump())
     db.add(db_task)
