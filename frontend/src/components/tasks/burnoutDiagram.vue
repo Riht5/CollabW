@@ -1,19 +1,5 @@
 <template>
   <div class="d-flex flex-column gap-md">
-    <!-- <div v-for="task in tasks" :key="task.id" class="card">
-      <div class="card-body">
-      <div class="d-flex justify-between align-start mb-md">
-        <h4 class="mb-0">{{ task.name }}</h4>
-        <div class="d-flex gap-sm">
-          <span class="workload-badge" :class="task.workload">
-          {{ getWorkloadText(task.workload) }}
-          </span>
-          <span class="status-badge" :class="{ completed: task.finished, pending: !task.finished }">
-          {{ task.finished ? '已完成' : '进行中' }}
-          </span>
-        </div>
-      </div> -->
-      
     <div class="burn-down-container">
         <!-- 图表容器 -->
         <div ref="chart" class="chart"></div>
@@ -24,33 +10,7 @@
 <script lang="ts">
 import { ref, defineComponent, onMounted, onBeforeUnmount, nextTick } from 'vue';
 import { ProjectProgress } from '@/types/index';
-import axios from 'axios'
 import * as echarts from 'echarts'
-
-// // 定义燃尽图数据接口
-// interface BurnDownData {
-//   dates: string[]
-//   idealRemain: number[]
-//   actualRemain: number[]
-// }
-
-// // 示例数据
-// const exampleData: BurnDownData = {
-//   dates: [
-//     '2025-06-01',
-//     '2025-06-02',
-//     '2025-06-03',
-//     '2025-06-04',
-//     '2025-06-05',
-//     '2025-06-06',
-//     '2025-06-07',
-//     '2025-06-08',
-//     '2025-06-09',
-//     '2025-06-10'
-//   ],
-//   idealRemain: [100, 90, 80, 70, 60, 50, 40, 30, 20, 10],
-//   actualRemain: [100, 85, 75, 65, 55, 45, 42, 28, 15, 8]
-// }
 
 // 定义组件
 export default defineComponent({
@@ -59,6 +19,10 @@ export default defineComponent({
     projectProgresses: {
       type: Array as () => ProjectProgress[],
       required: true
+    },
+    idealProgresses: {
+      type: Array as () => ProjectProgress[],
+      default: []
     }
   },
   setup(props) {
@@ -66,57 +30,160 @@ export default defineComponent({
     let myChart: echarts.ECharts | null = null
 
     // 渲染燃尽图函数
-    const renderChart = (data: ProjectProgress[]) => {
-      if (!chart.value) return
-
-      myChart?.dispose()
-      myChart = echarts.init(chart.value)
-
-      myChart.setOption({
-        title: {
-          text: '燃尽图（Burndown Chart）',
-          left: 'center',
-          top: 20,
-          textStyle: { fontSize: 16, fontWeight: 'bold' }
-        },
-        tooltip: { trigger: 'axis' },
-        legend: { data: ['理想剩余', '实际剩余'], top: 50 },
-        grid: { left: '10%', right: '10%', bottom: '15%' },
-        xAxis: {
-          type: 'category',
-          data: data.map((item) => item.date),  // 这里应该是一个日期数组
-          boundaryGap: false,
-          axisLabel: {
-            rotate: 45,
-            formatter: (val: string) => val.slice(5)
+    const renderChart = (data: ProjectProgress[], idealData: ProjectProgress[]) => {
+      // 检查DOM元素是否有效
+      if (!chart.value) return;
+      
+      // 初始化或获取ECharts实例
+      if (!myChart) {
+        myChart = echarts.init(chart.value);
+      }
+      
+      // 处理实际进度数据（转换为剩余工作量百分比）
+      const actualData = data.map(item => ({
+        name: item.date,
+        value: [item.date, (1 - item.progress) * 100]
+      })).sort((a, b) => 
+        new Date(a.name).getTime() - new Date(b.name).getTime()
+      );
+      
+      // 处理理想进度数据
+      const idealLineData = idealData.map(item => ({
+        name: item.date,
+        value: [item.date, (1 - item.progress) * 100]
+      })).sort((a, b) => 
+        new Date(a.name).getTime() - new Date(b.name).getTime()
+      );
+      
+      // 配置图表选项
+      const option: echarts.EChartsOption = {
+        tooltip: {
+          trigger: 'axis',
+          formatter: (params: any) => {
+            interface TooltipParam {
+              seriesName: string;
+              value: [string, number];
+            }
+            
+            const paramsArray = params as TooltipParam[];
+            
+            const actualParam = paramsArray.find(p => p.seriesName === '实际进度');
+            const idealParam = paramsArray.find(p => p.seriesName === '理想进度');
+            
+            const date = params[0].name;
+            const actual = actualParam?.value[1] ?? null;
+            const ideal = idealParam?.value[1] ?? null;
+            return `
+              <div>日期: ${date}</div>
+              <div>实际剩余: ${actual?.toFixed(1)}%</div>
+              <div>理想剩余: ${ideal?.toFixed(1)}%</div>
+            `;
           }
         },
-        yAxis: { type: 'value', name: '剩余工作量占比（%）' },
+        legend: {
+          data: ['实际进度', '理想进度'],
+          bottom: 10
+        },
+        grid: {
+          left: '3%',
+          right: '4%',
+          bottom: '15%',
+          top: '10%',
+          containLabel: true
+        },
+        xAxis: {
+          type: 'time',
+          // 修复 boundaryGap 类型错误 - 使用数组格式
+          boundaryGap: [0, '10%'], // [起点, 终点] 百分比格式
+          axisLabel: {
+            formatter: (value: number) => {
+              return echarts.time.format(value, '{yyyy}-{MM}-{dd}', false);
+            },
+          }
+        },
+        yAxis: {
+          type: 'value',
+          min: 0,
+          max: 100,
+          axisLabel: {
+            formatter: '{value}%'
+          },
+          name: '剩余工作量'
+        },
         series: [
           {
-            name: '理想剩余',
+            name: '实际进度',
             type: 'line',
-            data: data.map((item) => item.progress),  // 使用 progress 数据
-            smooth: true,
-            lineStyle: { type: 'dashed', color: '#FF0000' },
-            itemStyle: { color: '#FF0000' }
+            showSymbol: true,
+            data: actualData,
+            lineStyle: {
+              width: 2,
+              color: '#3498db'
+            },
+            itemStyle: {
+              color: '#3498db'
+            },
+            markPoint: {
+              data: [
+                { type: 'min', name: '最小值'}
+              ],
+              label: {
+                formatter: function(params: any) {
+                  const value = typeof params.value === 'number' 
+                    ? params.value.toFixed(1) 
+                    : params.value;
+                  return value;
+                },
+                color: '#fff',
+                padding: 2,
+                borderRadius: 4
+              },
+              
+            }
           },
           {
-            name: '实际剩余',
+            name: '理想进度',
             type: 'line',
-            data: data.map((item) => 1 - item.progress),  // 使用 progress 数据
-            smooth: true,
-            lineStyle: { color: '#00A0E9' },
-            itemStyle: { color: '#00A0E9' }
+            showSymbol: false,
+            data: idealLineData,
+            lineStyle: {
+              width: 2,
+              type: 'dashed',
+              color: '#FF4500'
+            },
+            smooth: true
+          }
+        ],
+        dataZoom: [
+          {
+            type: 'inside',
+            start: 0,
+            end: 100
+          },
+          {
+            type: 'slider',
+            start: 0,
+            end: 100,
+            handleSize: '80%',
+            handleStyle: {
+              color: '#fff',
+              shadowBlur: 3,
+              shadowColor: 'rgba(0, 0, 0, 0.6)',
+              shadowOffsetX: 2,
+              shadowOffsetY: 2
+            }
           }
         ]
-      })
+      };
+      
+      // 应用配置并渲染图表
+      myChart.setOption(option);
     }
 
     // 在组件挂载后渲染图表
     onMounted(() => {
       nextTick(() => {
-        renderChart(props.projectProgresses)  // 访问 props.projectProgresses
+        renderChart(props.projectProgresses, props.idealProgresses)  // 访问 props.projectProgresses
       })
       window.addEventListener('resize', () => {
         myChart?.resize()
@@ -136,13 +203,8 @@ export default defineComponent({
 </script>
 
 <style scoped>
-.burn-down-container {
-  width: 100%;
-  min-height: 400px; /* 确保至少有 400px 高度 */
-}
-
 .chart {
   width: 100%;
-  height: 400px;     /* 图表主体也要给一个非 0 的高度 */
+  height: 400px;
 }
 </style>

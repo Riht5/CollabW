@@ -36,7 +36,6 @@ class Project(ProjectBase):
     id: int
     progress: Optional[float] = None
     tasks: Optional[List[Task]] = []
-    progress: Optional[float] = None
 
     model_config = {"from_attributes": True}
 

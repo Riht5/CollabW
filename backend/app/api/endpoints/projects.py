@@ -9,6 +9,7 @@ from app.schemas.user import User as UserSchema
 from app.db.session import get_db
 from app.services.project import update_project_progress
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
 
 # 创建路由
 router = APIRouter()
@@ -94,19 +95,81 @@ def add_dependencies(
 @router.get("/{project_id}/progress/", response_model=List[ProjectProgress])
 def read_all_project_progress(project_id: int, db: Session = Depends(get_db)):
     """
-    获取指定项目ID的所有的进度记录（按日期升序返回）
+    获取指定项目ID的所有进度记录（按日期升序返回）
+    如果某天没有进度数据，则填充最近一次的进度数据，并将日期更新为当天
     """
     progresses = (
-        db
-        .query(ProjectProgressModel)
+        db.query(ProjectProgressModel)
         .filter(ProjectProgressModel.project_id == project_id)
         .order_by(ProjectProgressModel.date.asc())
         .all()
     )
+
+
     if not progresses:
         raise HTTPException(status_code=404, detail="No project progress found")
 
-    return progresses
+    # 获取最早和最晚的日期
+    start_date = progresses[0].date
+    end_date = datetime.today().date()
+
+    # 填充缺失的日期
+    filled_progresses = []
+    last_progress = None
+
+    # 遍历从 start_date 到 end_date 的每一天
+    for day in range((end_date - start_date).days + 1):
+        current_date = start_date + timedelta(days=day)
+
+        # 找到该日期的进度数据
+        progress_for_day = next((p for p in progresses if p.date == current_date), None)
+
+        if progress_for_day:
+            filled_progresses.append(progress_for_day)
+            last_progress = progress_for_day
+
+            if progress_for_day.progress >= 1.0:
+                break
+        elif last_progress:
+            # 如果没有当天的进度数据，使用最近一次的进度数据，并将日期更新为当前日期
+            filled_progress = ProjectProgressModel(
+                project_id=last_progress.project_id,
+                date=current_date,
+                progress=last_progress.progress
+            )
+            filled_progresses.append(filled_progress)
+
+    return filled_progresses
+
+@router.get("/{project_id}/ideal-progress/", response_model=List[ProjectProgress])
+def read_ideal_project_progress(project_id: int, db: Session = Depends(get_db)):
+    """
+    获取指定项目ID的理想进度记录（按日期升序返回）
+    """
+    project = db.query(ProjectModel).filter(ProjectModel.id == project_id).first()
+    if project is None:
+        raise HTTPException(status_code=404, detail="Project not found")
+    if project.start_time == None or project.estimated_duration == None:
+        return []
+
+    # 计算理想进度
+    ideal_progress = []
+    # 理想进度的日期范围：从项目的 start_time 开始，持续 estimated_duration 天
+    current_date = project.start_time
+    for day in range(project.estimated_duration):
+        progress = round(day / (project.estimated_duration - 1), 2)  # 计算当天的理想进度
+        ideal_progress.append(
+            ProjectProgress(
+                project_id=project_id,
+                date=current_date,
+                progress=progress
+            )
+        )
+        # 增加一天
+        current_date += timedelta(days=1)
+    
+    # 返回按日期升序排序的进度记录
+    return ideal_progress
 @router.get("/{project_id}/tasks", response_model=List[TaskSchema])
 def get_project_tasks(project_id: int, db: Session = Depends(get_db)):
     """

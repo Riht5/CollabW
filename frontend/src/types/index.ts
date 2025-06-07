@@ -46,8 +46,6 @@ export interface ProjectProgress {
   project_id: number;
   date: string;
   progress: number;
-
-  project?: Project;
 }
 
 export interface TaskCreate {

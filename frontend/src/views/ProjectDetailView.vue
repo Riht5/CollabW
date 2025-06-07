@@ -99,18 +99,20 @@
         </div>
       </div>
 
-      <div v-if="projectProgresses?.length !== 0">
+      <div v-if="idealProgresses?.length !== 0">
         <div class="card">
           <div class="card-header d-flex justify-between align-center">
             <h2>燃尽图</h2>
           </div>
           <div class="card-body">
             <BurnoutDiagram 
-              :projectProgresses="projectProgresses" 
+              :projectProgresses="projectProgresses || []" 
+              :idealProgresses="idealProgresses" 
             />
           </div>
         </div>
       </div>
+
 
       <!-- Modals -->
       <UserAssignModal
@@ -171,6 +173,7 @@ export default defineComponent({
     const projectTasks = ref<Task[]>([]);
     const projectMembers = ref<User[]>([]);
     const projectProgresses = ref<ProjectProgress[]>([])
+    const idealProgresses = ref<ProjectProgress[]>([])
     const loading = ref(false);
     const error = ref('');
     const showAssignModal = ref(false);
@@ -230,8 +233,9 @@ export default defineComponent({
       error.value = '';
       try {
         const projectId = route.params.id as string;
-        projectProgresses.value = await projectStore.fetchProjectProgress(projectId);
-        console.log('src/views/ProjectDetailView fetchProjectProgress: ', projectProgresses.value || []);
+        projectProgresses.value = await projectStore.fetchProjectProgresses(projectId);
+        idealProgresses.value = await projectStore.fetchIdealProjectProgresses(projectId);
+        console.log('src/views/ProjectDetailView fetchProjectProgress: ', idealProgresses.value || []);
       } catch (err: any) {
         error.value = err.message || '加载项目进程失败';
       } finally {
@@ -398,6 +402,7 @@ export default defineComponent({
     return {
       project,
       projectProgresses,
+      idealProgresses,
       projectTasks,
       projectMembers,
       loading,

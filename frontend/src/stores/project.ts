@@ -35,19 +35,33 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
-  const fetchProjectProgress = async (id: number | string) => {
+  const fetchProjectProgresses = async (id: number | string) => {
     loading.value = true;
     error.value = null;
     try {
       const response = await axios.get(`/api/projects/${id}/progress/`);
-      return response.data;
+      return response.data as ProjectProgress[];
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch project progress';
       return null;
     } finally {
       loading.value = false;
     }
-    };
+  };
+
+  const fetchIdealProjectProgresses = async (id: number | string) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await axios.get(`/api/projects/${id}/ideal-progress/`);
+      return response.data as ProjectProgress[];
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch ideal project progress';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
 
   const createProject = async (project: ProjectCreate) => {
     loading.value = true;
@@ -173,7 +187,8 @@ export const useProjectStore = defineStore('project', () => {
     error, 
     fetchProjects, 
     fetchProjectById, 
-    fetchProjectProgress, 
+    fetchProjectProgresses, 
+    fetchIdealProjectProgresses,
     createProject, 
     updateProject, 
     deleteProject,
