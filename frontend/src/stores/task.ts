@@ -50,12 +50,18 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
-  const updateTask = async (taskId: number, task: Partial<TaskCreate>) => {
+  const updateTask = async (taskId: number, updateData: Partial<Task>) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.put(`/api/tasks/${taskId}`, task);
-      await fetchTasks(); // 重新获取任务列表
+      const response = await axios.put(`/api/tasks/${taskId}`, updateData);
+      
+      // 更新本地状态中的任务
+      const index = tasks.value.findIndex(task => task.id === taskId);
+      if (index !== -1) {
+        tasks.value[index] = response.data;
+      }
+      
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to update task';
@@ -94,6 +100,21 @@ export const useTaskStore = defineStore('task', () => {
     }
   };
 
+  // 获取任务成员
+  const getTaskMembers = async (taskId: number) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await axios.get(`/api/tasks/${taskId}/users`);
+      return response.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch task members';
+      throw err;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   // 从任务中移除用户
   const unassignUserFromTask = async (taskId: number, userId: number) => {
     loading.value = true;
@@ -119,6 +140,7 @@ export const useTaskStore = defineStore('task', () => {
     updateTask, 
     deleteTask,
     assignUsersToTask,
+    getTaskMembers,
     unassignUserFromTask
   };
 });

@@ -46,7 +46,7 @@
       </div>
 
       <div class="section">
-        <h2>全员绩效排行</h2>
+        <h2>绩效排行榜</h2>
         <div class="performance-table">
           <div class="table-header">
             <div>排名</div>

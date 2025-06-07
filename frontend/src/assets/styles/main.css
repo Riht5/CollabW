@@ -111,6 +111,14 @@ body {
 .mt-lg { margin-top: var(--spacing-lg); }
 .mt-xl { margin-top: var(--spacing-xl); }
 
+/* 添加缺失的hover状态变量 */
+:root {
+  --primary-hover: #0056b3;
+  --success-hover: #218838;
+  --warning-hover: #e0a800;
+  --danger-hover: #c82333;
+}
+
 /* 响应式 */
 @media (max-width: 768px) {
   .container {

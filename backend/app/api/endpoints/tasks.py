@@ -2,6 +2,7 @@ from fastapi import APIRouter, HTTPException, Depends
 from typing import List
 from sqlalchemy.orm import Session
 from app.schemas.task import TaskCreate, TaskUpdate, Task as TaskSchema
+from app.schemas.user import User as UserSchema
 from app.models.project import Project as ProjectModel
 from app.models.task import Task as TaskModel
 from app.models.user import User as UserModel
@@ -34,11 +35,11 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     return db_task
 
 @router.get("/", response_model=List[TaskSchema])
-def read_tasks(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
+def read_tasks(db: Session = Depends(get_db)):
     """
     获取任务列表
     """
-    tasks = db.query(TaskModel).offset(skip).limit(limit).all()
+    tasks = db.query(TaskModel).all()
     return tasks
 
 @router.get("/{task_id}", response_model=TaskSchema)
@@ -71,6 +72,7 @@ def update_task(task_id: int, task: TaskUpdate, db: Session = Depends(get_db)):
         head = db.query(UserModel).filter(UserModel.id == update_data["head_id"]).first()
         if not head:
             raise HTTPException(status_code=404, detail="Head user not found")
+        head.task_id = task_id
     
     for key, value in update_data.items():
         setattr(db_task, key, value)
@@ -97,6 +99,18 @@ def delete_task(task_id: int, db: Session = Depends(get_db)):
     db.commit()
     update_project_progress(db_task.project_id, db) # 更新项目进度
     return db_task
+
+@router.get("/{task_id}/users", response_model=List[UserSchema])
+def get_task_users(task_id: int, db: Session = Depends(get_db)):
+    """
+    获取分配到指定任务的用户列表
+    """
+    task = db.query(TaskModel).filter(TaskModel.id == task_id).first()
+    if not task:
+        raise HTTPException(status_code=404, detail="Task not found")
+    
+    users = db.query(UserModel).filter(UserModel.task_id == task_id).all()
+    return users
 
 @router.post("/{task_id}/assign")
 def assign_users_to_task(
@@ -143,6 +157,9 @@ def unassign_user_from_task(
     if not user:
         raise HTTPException(status_code=404, detail="User not assigned to this task")
     
+    if task.head_id == user_id:
+        task.head_id = None
     user.task_id = None
+    
     db.commit()
     return {"message": f"Successfully unassigned user {user_id} from task {task_id}"}

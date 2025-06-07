@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime, timedelta
+from datetime import timedelta
 import networkx as nx
 
 from app.db.session import get_db
@@ -17,19 +17,10 @@ def get_gantt_data(db: Session = Depends(get_db)):
     gantt_data = []
 
     for project in projects:
-        valid_dependencies = True
         dependencies = []
 
         if project.dependencies:
             for dep in project.dependencies:
-                if dep.status.value != ProjectStatus.completed.value:
-                    valid_dependencies = False
-                if dep.progress_records:
-                    latest_progress = sorted(dep.progress_records, key=lambda x: x.date, reverse=True)[0].progress
-                else:
-                    latest_progress = 0.0
-                if latest_progress < 1.0:
-                    valid_dependencies = False
                 dependencies.append(dep.id)
 
         start_time = project.start_time

@@ -33,16 +33,16 @@
             <div class="form-group">
               <label for="workload">工作量 *</label>
               <select id="workload" v-model="form.workload" required>
-                <option value="light">轻量 (权重: 1)</option>
-                <option value="medium">中等 (权重: 2)</option>
-                <option value="heavy">重量 (权重: 3)</option>
+                <option value="light">轻量</option>
+                <option value="medium">中等</option>
+                <option value="heavy">困难</option>
               </select>
             </div>
             
             <div class="form-group">
               <label for="head">任务负责人</label>
               <select id="head" v-model="form.head_id">
-                <option value="">请选择负责人</option>
+                <option :value="null">不分配负责人</option>
                 <option 
                   v-for="user in availableUsers" 
                   :key="user.id" 
@@ -64,10 +64,15 @@
       </div>
       
       <div class="modal-footer">
-        <button @click="closeModal" class="btn btn-secondary">取消</button>
-        <button @click="updateTask" class="btn btn-primary" :disabled="loading || !form.name || !form.workload">
-          {{ loading ? '更新中...' : '更新任务' }}
+        <button @click="deleteTask" class="btn btn-danger" :disabled="loading">
+          {{ loading ? '删除中...' : '删除任务' }}
         </button>
+        <div class="footer-right">
+          <button @click="closeModal" class="btn btn-secondary">取消</button>
+          <button @click="updateTask" class="btn btn-primary" :disabled="loading || !form.name || !form.workload">
+            {{ loading ? '更新中...' : '更新任务' }}
+          </button>
+        </div>
       </div>
       
       <div v-if="error" class="error-message">
@@ -91,7 +96,7 @@ export default defineComponent({
       required: true,
     },
   },
-  emits: ['close', 'updated'],
+  emits: ['close', 'updated', 'deleted'],
   setup(props, { emit }) {
     const taskStore = useTaskStore();
     const userStore = useUserStore();
@@ -128,10 +133,35 @@ export default defineComponent({
       error.value = '';
 
       try {
-        await taskStore.updateTask(props.task.id, form);
+        // 处理负责人ID，空字符串转为 undefined
+        const updateData = {
+          ...form,
+          head_id: form.head_id || undefined
+        };
+        
+        // 使用 update_task 接口更新任务信息，包括负责人
+        await taskStore.updateTask(props.task.id, updateData);
         emit('updated');
       } catch (err: any) {
         error.value = err.response?.data?.detail || '更新任务失败';
+      } finally {
+        loading.value = false;
+      }
+    };
+
+    const deleteTask = async () => {
+      if (!confirm('确定要删除此任务吗？此操作不可撤销。')) {
+        return;
+      }
+
+      loading.value = true;
+      error.value = '';
+
+      try {
+        await taskStore.deleteTask(props.task.id);
+        emit('deleted');
+      } catch (err: any) {
+        error.value = err.response?.data?.detail || '删除任务失败';
       } finally {
         loading.value = false;
       }
@@ -152,6 +182,7 @@ export default defineComponent({
       availableUsers,
       getRoleText,
       updateTask,
+      deleteTask,
       closeModal,
     };
   },
@@ -262,10 +293,15 @@ export default defineComponent({
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
-  gap: 12px;
+  justify-content: space-between;
+  align-items: center;
   padding: 24px;
   border-top: 1px solid #eee;
+}
+
+.footer-right {
+  display: flex;
+  gap: 12px;
 }
 
 .btn {
@@ -298,6 +334,20 @@ export default defineComponent({
 
 .btn-secondary:hover {
   background: #7f8c8d;
+}
+
+.btn-danger {
+  background: #e74c3c;
+  color: white;
+}
+
+.btn-danger:hover:not(:disabled) {
+  background: #c0392b;
+}
+
+.btn-danger:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
 }
 
 .error-message {
