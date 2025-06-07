@@ -21,11 +21,8 @@
           </span>
         </div>
         <div class="header-actions">
-          <button @click="showAssignModal = true" class="btn btn-primary btn-sm">
-            <i class="icon">👥</i> 分配人员
-          </button>
-          <button @click="showTaskModal = true" class="btn btn-primary btn-sm">
-            <i class="icon">📝</i> 添加任务
+          <button @click="goBackToProjects" class="btn btn-secondary btn-sm">
+            <i class="icon">← </i> 返回项目列表
           </button>
         </div>
       </div>
@@ -61,23 +58,17 @@
 
         <div class="card">
           <div class="card-header d-flex justify-between align-center">
-            <h2>项目成员 ({{ project.assigned_users?.length || 0 }})</h2>
-            <button @click="showAssignModal = true" class="btn btn-primary btn-sm">
-              分配成员
-            </button>
+            <h2>项目成员 ({{ projectMembers.length }})</h2>
           </div>
           <div class="card-body">
-            <div v-if="project.assigned_users?.length" class="d-flex flex-column gap-md">
-              <div v-for="user in project.assigned_users" :key="user.id" class="d-flex align-center gap-md p-md bg-secondary" style="border-radius: var(--radius-sm);">
+            <div v-if="projectMembers.length" class="d-flex flex-column gap-md">
+              <div v-for="user in projectMembers" :key="user.id" class="d-flex align-center gap-md p-md bg-secondary" style="border-radius: var(--radius-sm);">
                 <div class="avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
                 <div class="flex-1">
                   <h4 class="mb-0">{{ user.username }}</h4>
                   <p class="text-muted mb-0">{{ user.email }}</p>
                   <span class="role-badge" :class="user.role">{{ getRoleText(user.role) }}</span>
                 </div>
-                <button @click="removeUser(user.id)" class="btn btn-danger btn-sm" title="移除成员">
-                  ×
-                </button>
               </div>
             </div>
             <div v-else class="empty-state">
@@ -90,18 +81,20 @@
 
       <div class="card">
         <div class="card-header d-flex justify-between align-center">
-          <h2>项目任务 ({{ project.tasks?.length || 0 }})</h2>
+          <h2>项目任务 ({{ projectTasks.length }})</h2>
           <button @click="showTaskModal = true" class="btn btn-primary btn-sm">
-            添加任务
+            <i class="icon">📝</i> 添加任务
           </button>
         </div>
         <div class="card-body">
           <TaskList 
-            :tasks="project.tasks || []" 
+            :tasks="projectTasks" 
             :show-actions="true"
             @edit="editTask"
             @delete="deleteTask"
             @toggle-status="toggleTaskStatus"
+            @assign-members="assignMembersToTask"
+            @update-task="handleTaskUpdate"
           />
         </div>
       </div>
@@ -121,9 +114,10 @@
 
       <!-- Modals -->
       <UserAssignModal
-        v-if="showAssignModal"
-        :project-id="project.id"
-        :assigned-users="project.assigned_users || []"
+        v-if="showAssignModal && selectedTask"
+        :project-id="project?.id"
+        :assigned-users="projectMembers"
+        :pre-selected-task="selectedTask"
         @close="showAssignModal = false"
         @assigned="handleUserAssigned"
       />
@@ -140,6 +134,7 @@
         :task="editingTask"
         @close="showEditTaskModal = false"
         @updated="handleTaskUpdated"
+        @deleted="handleTaskDeleted"
       />
     </div>
   </div>
@@ -147,7 +142,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted } from 'vue';
-import { useRoute } from 'vue-router';
+import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
 import { useTaskStore } from '@/stores/task';
 import TaskList from '@/components/tasks/TaskList.vue';
@@ -155,7 +150,7 @@ import BurnoutDiagram from '@/components/tasks/burnoutDiagram.vue';
 import UserAssignModal from '@/components/modals/UserAssignModal.vue';
 import TaskCreateModal from '@/components/modals/TaskCreateModal.vue';
 import TaskEditModal from '@/components/modals/TaskEditModal.vue';
-import { Project, Task, ProjectProgress} from '@/types/index';
+import { Project, Task, User, ProjectProgress} from '@/types/index';
 
 export default defineComponent({
   name: 'ProjectDetailView',
@@ -168,10 +163,13 @@ export default defineComponent({
   },
   setup() {
     const route = useRoute();
+    const router = useRouter();
     const projectStore = useProjectStore();
     const taskStore = useTaskStore();
     
     const project = ref<Project | null>(null);
+    const projectTasks = ref<Task[]>([]);
+    const projectMembers = ref<User[]>([]);
     const projectProgresses = ref<ProjectProgress[]>([])
     const loading = ref(false);
     const error = ref('');
@@ -179,6 +177,7 @@ export default defineComponent({
     const showTaskModal = ref(false);
     const showEditTaskModal = ref(false);
     const editingTask = ref<Task | null>(null);
+    const selectedTask = ref<Task | null>(null);
 
     const getStatusText = (status: string) => {
       const statusMap: Record<string, string> = {
@@ -208,7 +207,17 @@ export default defineComponent({
       error.value = '';
       try {
         const projectId = route.params.id as string;
-        project.value = await projectStore.fetchProjectById(projectId);
+        
+        // 并行获取项目基本信息、任务和成员
+        const [projectData, tasks, members] = await Promise.all([
+          projectStore.fetchProjectById(projectId),
+          projectStore.fetchProjectTasks(projectId),
+          projectStore.fetchProjectMembers(projectId)
+        ]);
+        
+        project.value = projectData;
+        projectTasks.value = tasks;
+        projectMembers.value = members;
       } catch (err: any) {
         error.value = err.message || '加载项目失败';
       } finally {
@@ -259,21 +268,25 @@ export default defineComponent({
       }
     };
 
-    const toggleTaskStatus = async (taskId: number) => {
+    const toggleTaskStatus = async (task: Task) => {
       try {
-        const task = project.value?.tasks?.find(t => t.id === taskId);
-        if (task) {
-          await taskStore.updateTask(taskId, { finished: !task.finished });
-          await fetchProject();
-        }
+        await taskStore.updateTask(task.id, { finished: !task.finished });
+        await fetchProject();
       } catch (err) {
         console.error('更新任务状态失败:', err);
       }
     };
 
-    const handleUserAssigned = () => {
+    const assignMembersToTask = (task: Task) => {
+      selectedTask.value = task;
+      showAssignModal.value = true;
+    };
+
+    const handleUserAssigned = async () => {
       showAssignModal.value = false;
-      fetchProject();
+      selectedTask.value = null;
+      // 重新获取项目数据以更新任务成员信息
+      await fetchProject();
     };
 
     const handleTaskCreated = () => {
@@ -287,6 +300,96 @@ export default defineComponent({
       fetchProject();
     };
 
+    const handleTaskDeleted = () => {
+      showEditTaskModal.value = false;
+      editingTask.value = null;
+      fetchProject();
+    };
+
+    const handleTaskUpdate = async (taskId: number, updateData: Partial<Task>) => {
+      try {
+        await taskStore.updateTask(taskId, updateData);
+        // 更新本地数据
+        const taskIndex = projectTasks.value.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+          projectTasks.value[taskIndex] = { ...projectTasks.value[taskIndex], ...updateData };
+        }
+        console.log('任务更新成功:', updateData);
+      } catch (err) {
+        console.error('更新任务失败:', err);
+        // 如果更新失败，重新获取数据
+        await fetchProject();
+      }
+    };
+
+    const handleTaskReorder = async (reorderedTasks: Task[]) => {
+      try {
+        // 更新本地状态
+        projectTasks.value = reorderedTasks;
+        
+        // 可以在这里调用API更新服务器端的任务顺序
+        // await taskStore.updateTaskOrder(reorderedTasks.map((task, index) => ({
+        //   id: task.id,
+        //   order: index
+        // })));
+        
+        console.log('任务顺序已更新:', reorderedTasks.map(t => t.name));
+      } catch (err) {
+        console.error('更新任务顺序失败:', err);
+        // 如果更新失败，重新获取数据
+        await fetchProject();
+      }
+    };
+
+    const goBackToProjects = () => {
+      router.push('/projects');
+    };
+
+    const handleTaskDeleted = () => {
+      showEditTaskModal.value = false;
+      editingTask.value = null;
+      fetchProject();
+    };
+
+    const handleTaskUpdate = async (taskId: number, updateData: Partial<Task>) => {
+      try {
+        await taskStore.updateTask(taskId, updateData);
+        // 更新本地数据
+        const taskIndex = projectTasks.value.findIndex(t => t.id === taskId);
+        if (taskIndex !== -1) {
+          projectTasks.value[taskIndex] = { ...projectTasks.value[taskIndex], ...updateData };
+        }
+        console.log('任务更新成功:', updateData);
+      } catch (err) {
+        console.error('更新任务失败:', err);
+        // 如果更新失败，重新获取数据
+        await fetchProject();
+      }
+    };
+
+    const handleTaskReorder = async (reorderedTasks: Task[]) => {
+      try {
+        // 更新本地状态
+        projectTasks.value = reorderedTasks;
+        
+        // 可以在这里调用API更新服务器端的任务顺序
+        // await taskStore.updateTaskOrder(reorderedTasks.map((task, index) => ({
+        //   id: task.id,
+        //   order: index
+        // })));
+        
+        console.log('任务顺序已更新:', reorderedTasks.map(t => t.name));
+      } catch (err) {
+        console.error('更新任务顺序失败:', err);
+        // 如果更新失败，重新获取数据
+        await fetchProject();
+      }
+    };
+
+    const goBackToProjects = () => {
+      router.push('/projects');
+    };
+
     onMounted(() => {
       fetchProject()
       fetchProjectProgress()
@@ -295,12 +398,15 @@ export default defineComponent({
     return {
       project,
       projectProgresses,
+      projectTasks,
+      projectMembers,
       loading,
       error,
       showAssignModal,
       showTaskModal,
       showEditTaskModal,
       editingTask,
+      selectedTask,
       getStatusText,
       getRoleText,
       formatDate,
@@ -309,9 +415,14 @@ export default defineComponent({
       editTask,
       deleteTask,
       toggleTaskStatus,
+      assignMembersToTask,
       handleUserAssigned,
       handleTaskCreated,
       handleTaskUpdated,
+      handleTaskDeleted,
+      handleTaskUpdate,
+      handleTaskReorder,
+      goBackToProjects,
     };
   },
 });

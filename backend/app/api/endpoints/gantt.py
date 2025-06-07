@@ -1,41 +1,15 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.orm import Session
 from typing import List
-from datetime import datetime, timedelta
+from datetime import timedelta
 import networkx as nx
 
 from app.db.session import get_db
 from app.models.project import Project as ProjectModel, ProjectStatus
 from app.schemas.gantt import GanttProject, CriticalPathResponse
-
+from app.services.gantt import get_dependency_end_time
 router = APIRouter()
 
-def get_dependency_end_time(project: ProjectModel, db: Session, visited=None) -> datetime:
-    """获取项目依赖中最晚的结束时间，递归处理依赖"""
-    if visited is None:
-        visited = set()
-    if project.id in visited:
-        raise ValueError(f"Circular dependency detected for project {project.id}")
-    visited.add(project.id)
-
-    if not project.dependencies:
-        return project.end_time or (
-            project.start_time + timedelta(days=(project.estimated_duration or 0))
-            if project.start_time
-            else datetime.strptime("2025-06-01", "%Y-%m-%d")
-        )
-
-    end_times = []
-    for dep in project.dependencies:
-        dep_end_time = dep.end_time
-        if not dep_end_time:
-            # 递归计算依赖的 start_time 和 end_time
-            dep_start_time = get_dependency_end_time(dep, db, visited)
-            dep_end_time = dep_start_time + timedelta(days=(dep.estimated_duration or 0))
-        end_times.append(dep_end_time)
-    
-    visited.remove(project.id)
-    return max(end_times) if end_times else datetime.strptime("2025-06-01", "%Y-%m-%d")
 
 @router.get("/project-data", response_model=List[GanttProject])
 def get_gantt_data(db: Session = Depends(get_db)):
@@ -43,19 +17,10 @@ def get_gantt_data(db: Session = Depends(get_db)):
     gantt_data = []
 
     for project in projects:
-        valid_dependencies = True
         dependencies = []
 
         if project.dependencies:
             for dep in project.dependencies:
-                if dep.status.value != ProjectStatus.completed.value:
-                    valid_dependencies = False
-                if dep.progress_records:
-                    latest_progress = sorted(dep.progress_records, key=lambda x: x.date, reverse=True)[0].progress
-                else:
-                    latest_progress = 0.0
-                if latest_progress < 1.0:
-                    valid_dependencies = False
                 dependencies.append(dep.id)
 
         start_time = project.start_time

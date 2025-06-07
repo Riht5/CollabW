@@ -1,58 +1,60 @@
 <template>
   <div class="modal-overlay" @click="closeModal">
-    <div class="modal-content" @click.stop>
+    <div class="modal-container" @click.stop>
       <div class="modal-header">
-        <h2>分配项目成员</h2>
-        <button @click="closeModal" class="close-btn">×</button>
+        <h3>分配成员</h3>
+        <button @click="closeModal" class="close-btn">&times;</button>
       </div>
       
       <div class="modal-body">
-        <div class="search-section">
-          <input
-            type="text"
-            v-model="searchQuery"
-            placeholder="搜索用户..."
-            class="search-input"
-          />
-        </div>
-        
-        <div class="users-section">
-          <h3>可分配用户</h3>
-          <div class="user-list">
-            <div 
-              v-for="user in filteredUsers" 
-              :key="user.id"
-              class="user-item"
-              :class="{ selected: isUserSelected(user.id) }"
-              @click="toggleUser(user.id)"
-            >
+
+        <div class="current-assignees" v-if="currentAssignees.length > 0">
+          <h5>当前分配成员 ({{ currentAssignees.length }})</h5>
+          <div class="assignee-list">
+            <div v-for="user in currentAssignees" :key="user.id" class="assignee-item current">
               <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
               <div class="user-info">
-                <h4>{{ user.username }}</h4>
-                <p>{{ user.email }}</p>
-                <span class="role-badge" :class="user.role">{{ getRoleText(user.role) }}</span>
+                <span class="user-name">{{ user.username }}</span>
+                <span class="user-email">{{ user.email }}</span>
+                <div class="user-badges">
+                  <span class="user-role" :class="user.role">{{ getRoleText(user.role) }}</span>
+                  <span v-if="isTaskHead(user)" class="head-badge">负责人</span>
+                </div>
               </div>
-              <div class="checkbox">
-                <input 
-                  type="checkbox" 
-                  :checked="isUserSelected(user.id)"
-                  @change="toggleUser(user.id)"
-                />
-              </div>
+              <button @click="removeAssignee(user)" class="remove-btn" title="移除">×</button>
             </div>
           </div>
         </div>
-        
-        <div class="selected-section">
-          <h3>已选择用户 ({{ selectedUsers.length }})</h3>
-          <div class="selected-users">
-            <div 
-              v-for="userId in selectedUsers" 
-              :key="userId"
-              class="selected-user"
-            >
-              <span>{{ getUserById(userId)?.username }}</span>
-              <button @click="removeUser(userId)" class="remove-btn">×</button>
+
+        <div class="available-users">
+          <h5>可分配成员</h5>
+          <div v-if="loading" class="loading-state">加载中...</div>
+          <div v-else-if="availableUsers.length === 0" class="empty-state">暂无可分配成员</div>
+          <div v-else>
+            <div class="user-search">
+              <input 
+                v-model="searchQuery" 
+                type="text" 
+                placeholder="搜索成员..."
+                class="search-input"
+              />
+            </div>
+            
+            <div class="user-list">
+              <div 
+                v-for="user in filteredUsers" 
+                :key="user.id"
+                class="user-item"
+                @click="addAssignee(user)"
+              >
+                <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
+                <div class="user-info">
+                  <span class="user-name">{{ user.username }}</span>
+                  <span class="user-email">{{ user.email }}</span>
+                  <span class="user-role" :class="user.role">{{ getRoleText(user.role) }}</span>
+                </div>
+                <button class="add-btn" title="添加">+</button>
+              </div>
             </div>
           </div>
         </div>
@@ -60,8 +62,8 @@
       
       <div class="modal-footer">
         <button @click="closeModal" class="btn btn-secondary">取消</button>
-        <button @click="assignUsers" class="btn btn-primary" :disabled="loading || selectedUsers.length === 0">
-          {{ loading ? '分配中...' : `分配用户 (${selectedUsers.length})` }}
+        <button @click="saveAssignments" class="btn btn-primary" :disabled="saving">
+          {{ saving ? '保存中...' : '保存分配' }}
         </button>
       </div>
     </div>
@@ -70,91 +72,135 @@
 
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue';
+import { useTaskStore } from '@/stores/task';
 import { useUserStore } from '@/stores/user';
-import { useProjectStore } from '@/stores/project';
-import type { User } from '@/types/index';
+import type { User, Task } from '@/types/index';
 
 export default defineComponent({
   name: 'UserAssignModal',
   props: {
     projectId: {
-      type: Number,
-      required: true,
+      type: [String, Number],
+      required: true
     },
     assignedUsers: {
       type: Array as () => User[],
-      default: () => [],
+      required: true
     },
+    preSelectedTask: {
+      type: Object as () => Task,
+      required: true
+    }
   },
   emits: ['close', 'assigned'],
   setup(props, { emit }) {
+    const taskStore = useTaskStore();
     const userStore = useUserStore();
-    const projectStore = useProjectStore();
     
-    const loading = ref(false);
     const searchQuery = ref('');
-    const selectedUsers = ref<number[]>([]);
+    const saving = ref(false);
+    const loading = ref(false);
+    const currentAssignees = ref<User[]>([]);
+    const setAsHead = ref(false);
+
+    // 使用用户store中的用户数据，如果为空则使用传入的项目成员
+    const availableUsers = computed(() => {
+      return userStore.users.length > 0 ? userStore.users : props.assignedUsers;
+    });
+
+    // 初始化当前分配的成员
+    onMounted(async () => {
+      loading.value = true;
+      try {
+        // 如果用户store为空，则获取用户数据
+        if (userStore.users.length === 0) {
+          await userStore.fetchUsers();
+        }
+        
+        // 获取任务当前分配的成员
+        const taskMembers = await taskStore.getTaskMembers(props.preSelectedTask.id);
+        currentAssignees.value = [...(taskMembers || [])];
+        
+        // 如果任务有负责人但不在分配成员中，找到负责人用户对象并添加到列表
+        if (props.preSelectedTask?.head_id && !currentAssignees.value.find(u => u.id === props.preSelectedTask.head_id)) {
+          const headUser = userStore.users.find(u => u.id === props.preSelectedTask.head_id);
+          if (headUser) {
+            currentAssignees.value.push(headUser);
+          }
+        }
+      } catch (error) {
+        console.error('获取任务成员失败:', error);
+      } finally {
+        loading.value = false;
+      }
+    });
 
     const filteredUsers = computed(() => {
-      let users = userStore.users.filter(user => 
-        !props.assignedUsers.find(assigned => assigned.id === user.id)
+      const query = searchQuery.value.toLowerCase();
+      const assignedIds = currentAssignees.value.map(u => u.id);
+      
+      return availableUsers.value.filter(user => 
+        !assignedIds.includes(user.id) &&
+        (user.username.toLowerCase().includes(query) || 
+         user.email.toLowerCase().includes(query))
       );
-      
-      if (searchQuery.value) {
-        const query = searchQuery.value.toLowerCase();
-        users = users.filter(user => 
-          user.username.toLowerCase().includes(query) ||
-          user.email.toLowerCase().includes(query)
-        );
-      }
-      
-      return users;
     });
 
     const getRoleText = (role: string) => {
       const roleMap: Record<string, string> = {
         'director': '总监',
-        'manager': '经理',
+        'manager': '经理', 
         'user': '员工'
       };
       return roleMap[role] || role;
     };
 
-    const isUserSelected = (userId: number) => {
-      return selectedUsers.value.includes(userId);
+    const isTaskHead = (user: User) => {
+      return props.preSelectedTask?.head_id === user.id;
     };
 
-    const toggleUser = (userId: number) => {
-      const index = selectedUsers.value.indexOf(userId);
-      if (index > -1) {
-        selectedUsers.value.splice(index, 1);
-      } else {
-        selectedUsers.value.push(userId);
+    const addAssignee = (user: User) => {
+      if (!currentAssignees.value.find(u => u.id === user.id)) {
+        currentAssignees.value.push(user);
       }
     };
 
-    const removeUser = (userId: number) => {
-      const index = selectedUsers.value.indexOf(userId);
-      if (index > -1) {
-        selectedUsers.value.splice(index, 1);
+    const removeAssignee = async (user: User) => {
+      try {  
+        // 从任务中移除用户
+        await taskStore.unassignUserFromTask(props.preSelectedTask.id, user.id);
+        
+        // 从本地列表中移除
+        currentAssignees.value = currentAssignees.value.filter(u => u.id !== user.id);
+      } catch (error) {
+        console.error('移除成员失败:', error);
       }
     };
 
-    const getUserById = (userId: number) => {
-      return userStore.users.find(user => user.id === userId);
-    };
-
-    const assignUsers = async () => {
-      if (selectedUsers.value.length === 0) return;
-      
-      loading.value = true;
+    const saveAssignments = async () => {
+      saving.value = true;
       try {
-        await projectStore.assignUsersToProject(props.projectId, selectedUsers.value);
+        // 获取所有要分配的用户ID
+        const memberIds = currentAssignees.value.map(u => u.id);
+        
+        // 分配用户到任务
+        if (memberIds.length > 0) {
+          await taskStore.assignUsersToTask(props.preSelectedTask.id, memberIds);
+        }
+        
+        // 如果选择了设置负责人，设置最后添加的用户为负责人
+        if (setAsHead.value && currentAssignees.value.length > 0) {
+          const lastUser = currentAssignees.value[currentAssignees.value.length - 1];
+          await taskStore.updateTask(props.preSelectedTask.id, {
+            head_id: lastUser.id
+          });
+        }
+
         emit('assigned');
       } catch (error) {
-        console.error('分配用户失败:', error);
+        console.error('分配成员失败:', error);
       } finally {
-        loading.value = false;
+        saving.value = false;
       }
     };
 
@@ -162,24 +208,22 @@ export default defineComponent({
       emit('close');
     };
 
-    onMounted(() => {
-      userStore.fetchUsers();
-    });
-
     return {
-      loading,
       searchQuery,
-      selectedUsers,
+      saving,
+      loading,
+      currentAssignees,
+      setAsHead,
+      availableUsers,
       filteredUsers,
       getRoleText,
-      isUserSelected,
-      toggleUser,
-      removeUser,
-      getUserById,
-      assignUsers,
-      closeModal,
+      isTaskHead,
+      addAssignee,
+      removeAssignee,
+      saveAssignments,
+      closeModal
     };
-  },
+  }
 });
 </script>
 
@@ -197,28 +241,28 @@ export default defineComponent({
   z-index: 1000;
 }
 
-.modal-content {
+.modal-container {
   background: white;
-  border-radius: 12px;
+  border-radius: 8px;
   width: 90%;
   max-width: 600px;
   max-height: 80vh;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
 }
 
 .modal-header {
+  padding: 20px;
+  border-bottom: 1px solid #eee;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 24px;
-  border-bottom: 1px solid #eee;
 }
 
-.modal-header h2 {
+.modal-header h3 {
   margin: 0;
   color: #2c3e50;
-  font-size: 20px;
 }
 
 .close-btn {
@@ -226,197 +270,270 @@ export default defineComponent({
   border: none;
   font-size: 24px;
   cursor: pointer;
-  color: #666;
-  width: 32px;
-  height: 32px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
+  color: #999;
 }
 
 .close-btn:hover {
-  background: #f0f0f0;
+  color: #333;
 }
 
 .modal-body {
-  flex: 1;
+  padding: 20px;
   overflow-y: auto;
-  padding: 24px;
+  flex: 1;
+}
+
+.task-info {
+  margin-bottom: 20px;
+  padding: 15px;
+  background: #f8f9fa;
+  border-radius: 6px;
+}
+
+.task-info h4 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+}
+
+.task-info p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 14px;
+}
+
+.current-assignees {
+  margin-bottom: 20px;
+}
+
+.current-assignees h5,
+.available-users h5 {
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.assignee-list {
   display: flex;
   flex-direction: column;
-  gap: 24px;
+  gap: 8px;
+}
+
+.assignee-item {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  background: #e8f5e8;
+  border-radius: 6px;
+  border: 1px solid #c3e6c3;
+}
+
+.user-search {
+  margin-bottom: 16px;
 }
 
 .search-input {
   width: 100%;
-  padding: 12px 16px;
+  padding: 10px;
   border: 1px solid #ddd;
-  border-radius: 8px;
+  border-radius: 6px;
   font-size: 14px;
 }
 
-.search-input:focus {
-  outline: none;
-  border-color: #3498db;
-}
-
-.users-section h3,
-.selected-section h3 {
-  margin: 0 0 16px 0;
-  color: #2c3e50;
-  font-size: 16px;
-}
-
 .user-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
   max-height: 300px;
   overflow-y: auto;
-  border: 1px solid #eee;
-  border-radius: 8px;
 }
 
 .user-item {
   display: flex;
   align-items: center;
-  gap: 16px;
-  padding: 16px;
-  border-bottom: 1px solid #eee;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.user-item:hover,
-.user-item.selected {
+  gap: 12px;
+  padding: 12px;
   background: #f8f9fa;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  border: 1px solid #eee;
 }
 
-.user-item:last-child {
-  border-bottom: none;
+.user-item:hover {
+  background: #e9ecef;
+  border-color: var(--primary-color);
 }
 
 .user-avatar {
   width: 40px;
   height: 40px;
   border-radius: 50%;
-  background: #3498db;
+  background: var(--primary-color);
   color: white;
   display: flex;
   align-items: center;
   justify-content: center;
   font-weight: 600;
+  flex-shrink: 0;
 }
 
 .user-info {
   flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
 }
 
-.user-info h4 {
-  margin: 0 0 4px 0;
+.user-name {
+  font-weight: 500;
   color: #2c3e50;
-  font-size: 14px;
 }
 
-.user-info p {
-  margin: 0 0 8px 0;
-  color: #666;
+.user-email {
   font-size: 12px;
+  color: #6c757d;
 }
 
-.role-badge {
+.user-role {
+  font-size: 11px;
   padding: 2px 6px;
-  border-radius: 8px;
-  font-size: 10px;
+  border-radius: 10px;
+  color: white;
+  align-self: flex-start;
+}
+
+.user-role.director {
+  background: #e74c3c;
+}
+
+.user-role.manager {
+  background: #3498db;
+}
+
+.user-role.user {
+  background: #95a5a6;
+}
+
+.user-badges {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+  margin-top: 2px;
+}
+
+.head-badge {
+  background: #e74c3c;
+  color: white;
+  font-size: 11px;
+  padding: 2px 6px;
+  border-radius: 10px;
   font-weight: 500;
 }
 
-.role-badge.director {
-  background: #ff6b6b;
-  color: white;
-}
-
-.role-badge.manager {
-  background: #4ecdc4;
-  color: white;
-}
-
-.role-badge.user {
-  background: #95a5a6;
-  color: white;
-}
-
-.checkbox input {
-  width: 16px;
-  height: 16px;
-}
-
-.selected-users {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 8px;
-}
-
-.selected-user {
-  background: #e3f2fd;
-  color: #1976d2;
-  padding: 6px 12px;
-  border-radius: 16px;
-  font-size: 14px;
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
+.add-btn,
 .remove-btn {
-  background: #f44336;
-  color: white;
+  width: 28px;
+  height: 28px;
   border: none;
-  width: 18px;
-  height: 18px;
   border-radius: 50%;
   cursor: pointer;
-  font-size: 12px;
   display: flex;
   align-items: center;
   justify-content: center;
+  font-weight: 600;
+  font-size: 16px;
+  flex-shrink: 0;
+}
+
+.add-btn {
+  background: var(--success-color);
+  color: white;
+}
+
+.add-btn:hover {
+  background: var(--success-hover);
+}
+
+.remove-btn {
+  background: var(--danger-color);
+  color: white;
+}
+
+.remove-btn:hover {
+  background: var(--danger-hover);
 }
 
 .modal-footer {
-  display: flex;
-  justify-content: flex-end;
-  gap: 12px;
-  padding: 24px;
+  padding: 20px;
   border-top: 1px solid #eee;
+  display: flex;
+  gap: 12px;
+  justify-content: flex-end;
 }
 
 .btn {
   padding: 10px 20px;
   border: none;
   border-radius: 6px;
-  font-weight: 500;
   cursor: pointer;
+  font-weight: 500;
   transition: all 0.2s;
 }
 
-.btn-primary {
-  background: #3498db;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2980b9;
-}
-
-.btn-primary:disabled {
-  background: #bdc3c7;
-  cursor: not-allowed;
-}
-
 .btn-secondary {
-  background: #95a5a6;
+  background: #6c757d;
   color: white;
 }
 
 .btn-secondary:hover {
-  background: #7f8c8d;
+  background: #5a6268;
+}
+
+.btn-primary {
+  background: var(--primary-color);
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: var(--primary-hover);
+}
+
+.btn-primary:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
+.loading-state,
+.empty-state {
+  padding: 20px;
+  text-align: center;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.assignment-mode {
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid #eee;
+}
+
+.assignment-mode h5 {
+  margin: 0 0 12px 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.checkbox-option {
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+  color: #2c3e50;
+}
+
+.checkbox-option input[type="checkbox"] {
+  margin-right: 8px;
 }
 </style>

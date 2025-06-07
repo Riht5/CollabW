@@ -4,116 +4,75 @@
     <div class="dashboard-header">
       <h1>多项目甘特图</h1>
       <div class="header-actions">
-        <router-link to="/" class="btn btn-secondary">
-          <i class="icon">📊</i> 返回仪表盘
-        </router-link>
+        <button class="btn btn-secondary" @click="toggleView" :disabled="ganttStore.loading">
+          {{ showCriticalPath ? '返回项目甘特图' : '计算关键路径' }}
+          <i class="icon">{{ showCriticalPath ? '📊' : '🎯' }}</i>
+        </button>
       </div>
     </div>
     <div class="dashboard-content">
-      <div class="content-section">
-        <h2>项目甘特图</h2>
+      <div v-if="!showCriticalPath" class="content-section">
+        <h2>项目总览</h2>
         <GanttChartTest />
       </div>
-      <div class="content-section">
+      <div v-if="showCriticalPath" class="content-section">
         <h2>关键路径</h2>
-        <CriticalPathChart />
+        <Suspense>
+          <template #default>
+            <CriticalPathChart />
+          </template>
+          <template #fallback>
+            <div class="loading">加载关键路径数据...</div>
+          </template>
+        </Suspense>
       </div>
     </div>
   </div>
 </template>
 
 <script lang="ts" setup>
+import { ref, computed } from 'vue';
 import GanttChartTest from '../components/gantt/GanttChart.vue';
 import CriticalPathChart from '../components/gantt/CriticalPathChart.vue';
 import { useGanttStore } from '@/stores/gantt';
 import { onMounted } from 'vue';
 
 const ganttStore = useGanttStore();
+const showCriticalPath = ref(false); // 控制显示模式，默认显示项目甘特图
+
+const toggleView = async () => {
+  if (showCriticalPath.value) {
+    // 返回项目甘特图
+    showCriticalPath.value = false;
+    console.log('返回项目甘特图');
+  } else {
+    // 计算并显示关键路径
+    try {
+      ganttStore.loading = true;
+      await ganttStore.fetchCriticalPath();
+      console.log('获取关键路径数据:', ganttStore.criticalPathGanttData);
+      showCriticalPath.value = true; // 切换到关键路径视图
+    } catch (err) {
+      console.error('获取关键路径数据失败:', err);
+      ganttStore.error = '加载关键路径数据失败，请检查网络';
+    } finally {
+      ganttStore.loading = false;
+    }
+  }
+};
 
 onMounted(async () => {
-  await ganttStore.fetchGanttData();
   try {
-    await ganttStore.fetchCriticalPath();
+    // 页面初始化时获取项目甘特图数据
+    await ganttStore.fetchGanttData();
+    console.log('获取甘特图数据:', ganttStore.ganttAllData);
   } catch (err) {
-    console.error('Failed to fetch critical path:', err);
+    console.error('获取甘特图数据失败:', err);
+    ganttStore.error = '加载甘特图数据失败，请检查网络';
   }
 });
 </script>
 
 <style scoped>
-.dashboard {
-  padding: 32px;
-  max-width: 1400px;
-  margin: 0 auto;
-}
-.dashboard-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 32px;
-}
-.dashboard-header h1 {
-  color: #2c3e50;
-  font-size: 32px;
-  font-weight: 600;
-  margin: 0;
-}
-.header-actions {
-  display: flex;
-  gap: 12px;
-}
-.dashboard-content {
-  display: flex;
-  flex-direction: column;
-  gap: 32px;
-}
-.content-section {
-  background: white;
-  padding: 16px;
-  border-radius: 12px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  display: flex;
-  flex-direction: column;
-}
-.content-section h2 {
-  margin: 0 0 8px;
-  color: #2c3e50;
-  font-size: 24px;
-  font-weight: 600;
-}
-.btn {
-  padding: 12px 20px;
-  border: none;
-  border-radius: 8px;
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  text-decoration: none;
-}
-.btn-secondary {
-  background: #95a5a6;
-  color: white;
-}
-.btn-secondary:hover {
-  background: #7f8c8d;
-}
-.icon {
-  font-style: normal;
-}
-@media (max-width: 768px) {
-  .dashboard {
-    padding: 16px;
-  }
-  .dashboard-header {
-    flex-direction: column;
-    gap: 16px;
-    align-items: stretch;
-  }
-  .header-actions {
-    justify-content: center;
-  }
-}
+@import '@/assets/styles/gantt.css';
 </style>
