@@ -105,7 +105,6 @@ def read_all_project_progress(project_id: int, db: Session = Depends(get_db)):
         .all()
     )
 
-
     if not progresses:
         raise HTTPException(status_code=404, detail="No project progress found")
 

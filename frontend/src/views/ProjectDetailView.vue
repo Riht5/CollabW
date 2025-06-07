@@ -100,6 +100,7 @@
       </div>
 
       <div v-if="idealProgresses?.length !== 0">
+      <div v-if="idealProgresses?.length !== 0">
         <div class="card">
           <div class="card-header d-flex justify-between align-center">
             <h2>燃尽图</h2>
