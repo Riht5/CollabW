@@ -1,115 +1,156 @@
 <template>
-  <div>调试：Todolist 组件已加载</div>
-  <div class="task-list" v-if="taskStore">
-    <!-- Error message -->
-    <div v-if="error" class="text-danger mt-md">{{ error }}</div>
-    <!-- Success message -->
-    <div v-if="success" class="text-success mt-md">{{ success }}</div>
+  <div class="task-list">
     <!-- Loading state -->
-    <div v-if="taskStore.loading" class="loading-state text-center p-md">
+    <div v-if="userStore.loading" class="loading-state">
       <div class="loading-spinner"></div>
       <span>加载中...</span>
     </div>
-    <!-- Empty state -->
-    <div v-else-if="taskStore.tasks.length === 0" class="empty-state text-center p-xl">
-      <div class="empty-icon">📝</div>
-      <h3>暂无任务</h3>
-      <p class="text-muted">等待任务分配或添加 Todo</p>
-    </div>
-    <!-- Task list -->
-    <div v-else class="d-flex flex-column gap-md">
-      <div v-for="task in taskStore.tasks" :key="task.id" class="card">
-        <div class="card-body p-md">
-          <div class="d-flex justify-between align-start mb-md">
-            <h4 class="mb-0">{{ task.name }}</h4>
-            <div class="d-flex gap-sm">
-              <span class="workload-badge" :class="task.workload">
-                {{ getWorkloadText(task.workload) }}
-              </span>
-              <span class="status-badge" :class="{ completed: task.finished, pending: !task.finished }">
-                {{ task.finished ? '已完成' : '进行中' }}
-              </span>
-            </div>
+    <!-- Single task display -->
+    <div class="task-card">
+      <div class="task-card-body">
+        <div class="task-header">
+          <h4>{{ task.name }}</h4>
+          <div class="task-badges">
+            <span class="workload-badge" :class="task.workload">
+              {{ getWorkloadText(task.workload) }}
+            </span>
           </div>
+        </div>
 
-          <p v-if="task.description" class="text-secondary mb-md">
-            {{ task.description }}
-          </p>
+        <p v-if="task.description" class="task-description">
+          {{ task.description }}
+        </p>
 
-          <div class="d-flex justify-between text-muted mb-md">
-            <div v-if="task.head">
-              <span>负责人:</span>
-              <span class="m-sm">{{ task.head.username }}</span>
-            </div>
-            <div>
-              <span>工作量权重:</span>
-              <span class="m-sm">{{ getWorkloadWeight(task.workload) }}</span>
-            </div>
+        <div class="task-info">
+          <div v-if="task.head_id && getHeadUser(task.head_id)" class="head-info">
+            <span>负责人:</span>
+            <span>{{ getHeadUser(task.head_id)?.username }}</span>
           </div>
+          <div v-else-if="task.head_id" class="head-info">
+            <span>负责人:</span>
+            <span>加载中...</span>
+          </div>
+        </div>
 
-          <!-- Todo list for this task -->
-          <div class="todo-section mb-md">
+        <!-- Todo list for this task -->
+        <div class="todo-section">
+          <div class="todo-header">
             <h5>Todo 清单</h5>
-            <div class="todo-input-group d-flex gap-sm mb-sm">
-              <input
-                ref="inputRef"
-                v-model.trim="newTodoText"
-                class="todo-input"
-                placeholder="添加 Todo"
-                @keyup.enter="handleAddTodo(task.id)"
-                @input="handleInput"
-              />
-              <button
-                ref="buttonRef"
-                type="button"
-                class="btn-primary"
-                @click="handleAddTodo(task.id)"
-                :disabled="!newTodoText || !newTodoText.trim()"
-              >
-                确认
-              </button>
-            </div>
-            <div v-if="todoError" class="text-danger mt-sm">{{ todoError }}</div>
-            <div v-if="todoSuccess" class="text-success mt-sm">{{ todoSuccess }}</div>
-            <div class="todo-list">
-              <template v-if="todos[task.id] && todos[task.id].length > 0">
-                <ul>
-                  <li v-for="todo in todos[task.id].filter(t => !t.completed)" :key="todo.id" class="todo-item">
+            <span class="todo-count">{{ getTodoStats(task.id) }}</span>
+          </div>
+          
+          <div class="todo-input-group">
+            <input
+              ref="inputRef"
+              v-model.trim="newTodoText"
+              class="todo-input"
+              placeholder="添加新的 Todo 项..."
+              @keyup.enter="handleAddTodo(task.id)"
+              @input="handleInput"
+            />
+            <button
+              ref="buttonRef"
+              type="button"
+              class="btn btn-primary"
+              @click="handleAddTodo(task.id)"
+              :disabled="!newTodoText || !newTodoText.trim()"
+            >
+              <span class="btn-icon">+</span>
+              添加
+            </button>
+          </div>
+          
+          <div v-if="todoError" class="error-message">{{ todoError }}</div>
+          <div v-if="todoSuccess" class="success-message">{{ todoSuccess }}</div>
+          
+          <div class="todo-list">
+            <template v-if="todos[task.id] && todos[task.id].length > 0">
+              <!-- 未完成的todos -->
+              <div v-if="getIncompleteTodos(task.id).length > 0" class="todo-group">
+                <h6 class="todo-group-title">待完成 ({{ getIncompleteTodos(task.id).length }})</h6>
+                <div class="todo-items">
+                  <div v-for="todo in getIncompleteTodos(task.id)" :key="todo.id" class="todo-item">
                     <input
                       type="checkbox"
                       class="todo-checkbox"
                       :checked="todo.completed"
                       @change="updateTodo(task.id, todo.id)"
                     />
-                    <span>{{ todo.text }}</span>
-                  </li>
-                  <li v-for="todo in todos[task.id].filter(t => t.completed)" :key="todo.id" class="todo-item completed">
-                    <input
-                      type="checkbox"
-                      class="todo-checkbox"
-                      :checked="todo.completed"
-                      @change="updateTodo(task.id, todo.id)"
-                    />
-                    <span class="todo-completed">{{ todo.text }}</span>
-                  </li>
-                </ul>
-              </template>
-              <div v-else class="no-todos">
-                暂无 Todo
+                    <div v-if="editingTodo === todo.id" class="todo-edit-form">
+                      <input
+                        v-model="editingText"
+                        class="todo-edit-input"
+                        @keyup.enter="saveEdit(task.id, todo.id)"
+                        @keyup.esc="cancelEdit"
+                        @blur="saveEdit(task.id, todo.id)"
+                        ref="editInput"
+                      />
+                    </div>
+                    <span v-else class="todo-text" @dblclick="startEdit(todo)">
+                      {{ todo.text }}
+                    </span>
+                    <div class="todo-actions">
+                      <button
+                        v-if="editingTodo !== todo.id"
+                        @click="startEdit(todo)"
+                        class="todo-action-btn edit-btn"
+                        title="编辑"
+                      >
+                        ✏️
+                      </button>
+                      <button
+                        @click="deleteTodo(task.id, todo.id)"
+                        class="todo-action-btn delete-btn"
+                        title="删除"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
               </div>
+
+              <!-- 已完成的todos -->
+              <div v-if="getCompletedTodos(task.id).length > 0" class="todo-group completed-group">
+                <h6 class="todo-group-title">已完成 ({{ getCompletedTodos(task.id).length }})</h6>
+                <div class="todo-items">
+                  <div v-for="todo in getCompletedTodos(task.id)" :key="todo.id" class="todo-item completed">
+                    <input
+                      type="checkbox"
+                      class="todo-checkbox"
+                      :checked="todo.completed"
+                      @change="updateTodo(task.id, todo.id)"
+                    />
+                    <span class="todo-text todo-completed">{{ todo.text }}</span>
+                    <div class="todo-actions">
+                      <button
+                        @click="deleteTodo(task.id, todo.id)"
+                        class="todo-action-btn delete-btn"
+                        title="删除"
+                      >
+                        🗑️
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </template>
+            <div v-else class="no-todos">
+              <div class="no-todos-icon">📝</div>
+              <p>暂无 Todo 项</p>
+              <p class="no-todos-hint">添加第一个 Todo 来开始工作吧！</p>
             </div>
           </div>
         </div>
       </div>
     </div>
   </div>
-  <div v-else class="text-danger p-md">任务数据加载失败</div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, computed, onMounted, watch, getCurrentInstance, nextTick } from 'vue';
+import { defineComponent, ref, onMounted, nextTick } from 'vue';
 import type { Task } from '@/types/index';
-import { useTaskStore } from '@/stores/task';
+import { useUserStore } from '@/stores/user';
 
 /**
  * Todo 项接口定义
@@ -136,28 +177,15 @@ export default defineComponent({
     }
   },
   setup(props) {
-    const taskStore = useTaskStore();
+    const userStore = useUserStore();
     const todos = ref<Todos>({});
     const newTodoText = ref('');
     const todoError = ref('');
     const todoSuccess = ref('');
-    const error = ref('');
-    const success = ref('');
-    const buttonRef = ref<HTMLButtonElement | null>(null);
     const inputRef = ref<HTMLInputElement | null>(null);
-    const instance = getCurrentInstance();
-
-    const forceUpdate = () => {
-      const newTodos: Todos = {};
-      Object.entries(todos.value).forEach(([key, value]) => {
-        newTodos[parseInt(key, 10)] = [...value];
-      });
-      todos.value = newTodos;
-    };
-
-    const isButtonDisabled = computed(() => {
-      return !newTodoText.value || !newTodoText.value.trim();
-    });
+    const editingTodo = ref<number | null>(null);
+    const editingText = ref('');
+    const editInput = ref<HTMLInputElement | null>(null);
 
     const saveTodos = () => {
       try {
@@ -222,7 +250,6 @@ export default defineComponent({
       
       saveTodos();
       await clearInput();
-      forceUpdate();
     };
 
     const updateTodo = (taskId: number, todoId: number) => {
@@ -243,14 +270,12 @@ export default defineComponent({
         const newTodos = [...taskTodos];
         newTodos[todoIndex] = updatedTodo;
 
-        const newTodosState = {
+        todos.value = {
           ...todos.value,
           [taskId]: newTodos
         };
 
-        todos.value = newTodosState;
         saveTodos();
-        forceUpdate();
       } catch (error) {
         console.error('更新 Todo 失败:', error);
         todoError.value = '更新 Todo 失败';
@@ -269,75 +294,186 @@ export default defineComponent({
       return workloadMap[workload] || workload;
     };
 
-    const getWorkloadWeight = (workload: string): number => {
-      const weightMap: Record<string, number> = {
-        light: 1,
-        medium: 2,
-        heavy: 3
-      };
-      return weightMap[workload] || 1;
+    const getHeadUser = (headId: number | null | undefined) => {
+      if (!headId || !userStore.users || userStore.users.length === 0) return null;
+      return userStore.users.find(user => user.id === headId);
     };
 
-    watch(todos, () => {
-      saveTodos();
-    }, { deep: true });
+    const getTodoStats = (taskId: number) => {
+      const taskTodos = todos.value[taskId] || [];
+      const completed = taskTodos.filter(t => t.completed).length;
+      const total = taskTodos.length;
+      return total > 0 ? `${completed}/${total} 完成` : '0 项';
+    };
 
-    onMounted(() => {
+    const getIncompleteTodos = (taskId: number) => {
+      return (todos.value[taskId] || []).filter(t => !t.completed);
+    };
+
+    const getCompletedTodos = (taskId: number) => {
+      return (todos.value[taskId] || []).filter(t => t.completed);
+    };
+
+    const startEdit = (todo: Todo) => {
+      editingTodo.value = todo.id;
+      editingText.value = todo.text;
+      nextTick(() => {
+        if (editInput.value) {
+          editInput.value.focus();
+          editInput.value.select();
+        }
+      });
+    };
+
+    const cancelEdit = () => {
+      editingTodo.value = null;
+      editingText.value = '';
+    };
+
+    const saveEdit = (taskId: number, todoId: number) => {
+      const newText = editingText.value.trim();
+      if (!newText || newText === '') {
+        cancelEdit();
+        return;
+      }
+
+      try {
+        const taskTodos = todos.value[taskId] || [];
+        const todoIndex = taskTodos.findIndex(t => t.id === todoId);
+        
+        if (todoIndex !== -1) {
+          const updatedTodo = {
+            ...taskTodos[todoIndex],
+            text: newText
+          };
+
+          const newTodos = [...taskTodos];
+          newTodos[todoIndex] = updatedTodo;
+
+          todos.value = {
+            ...todos.value,
+            [taskId]: newTodos
+          };
+
+          saveTodos();
+        }
+      } catch (error) {
+        console.error('编辑 Todo 失败:', error);
+        todoError.value = '编辑 Todo 失败';
+        setTimeout(() => {
+          todoError.value = '';
+        }, 3000);
+      }
+
+      cancelEdit();
+    };
+
+    const deleteTodo = (taskId: number, todoId: number) => {
+      if (!confirm('确定要删除这个 Todo 吗？')) {
+        return;
+      }
+
+      try {
+        const taskTodos = todos.value[taskId] || [];
+        const newTodos = taskTodos.filter(t => t.id !== todoId);
+
+        todos.value = {
+          ...todos.value,
+          [taskId]: newTodos
+        };
+
+        saveTodos();
+        
+        todoSuccess.value = 'Todo 已删除';
+        setTimeout(() => {
+          todoSuccess.value = '';
+        }, 2000);
+      } catch (error) {
+        console.error('删除 Todo 失败:', error);
+        todoError.value = '删除 Todo 失败';
+        setTimeout(() => {
+          todoError.value = '';
+        }, 3000);
+      }
+    };
+
+    onMounted(async () => {
       loadTodos();
+      // 确保用户数据已加载
+      try {
+        if (userStore.users.length === 0) {
+          await userStore.fetchUsers();
+        }
+      } catch (error) {
+        console.error('Failed to load users:', error);
+      }
     });
 
     return {
-      taskStore,
+      userStore,
       todos,
       newTodoText,
       todoError,
       todoSuccess,
-      error,
-      success,
-      buttonRef,
       inputRef,
-      isButtonDisabled,
+      editingTodo,
+      editingText,
+      editInput,
       handleAddTodo,
       updateTodo,
       handleInput,
       getWorkloadText,
-      getWorkloadWeight
+      getHeadUser,
+      getTodoStats,
+      getIncompleteTodos,
+      getCompletedTodos,
+      startEdit,
+      cancelEdit,
+      saveEdit,
+      deleteTodo
     };
   }
 });
 </script>
 
 <style scoped>
-@import '@/assets/styles/main.css';
-
 .task-list {
   width: 100%;
-  visibility: visible !important;
 }
 
-.empty-state {
-  padding: var(--spacing-xl);
+.error-message {
+  background: #f8d7da;
+  color: #721c24;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid #f5c6cb;
 }
 
-.empty-icon {
-  font-size: var(--font-size-4xl);
-  color: var(--primary-color);
-  margin-bottom: var(--spacing-md);
+.success-message {
+  background: #d4edda;
+  color: #155724;
+  padding: 12px 16px;
+  margin-bottom: 16px;
+  border-radius: 6px;
+  border: 1px solid #c3e6cb;
 }
 
 .loading-state {
-  padding: var(--spacing-md);
+  text-align: center;
+  padding: 40px 20px;
+  color: #6c757d;
 }
 
 .loading-spinner {
   display: inline-block;
   width: 16px;
   height: 16px;
-  border: 2px solid var(--primary-color);
+  border: 2px solid #3498db;
   border-top: 2px solid transparent;
   border-radius: 50%;
   animation: spin 0.6s linear infinite;
-  margin-right: var(--spacing-sm);
+  margin-right: 8px;
 }
 
 @keyframes spin {
@@ -345,163 +481,376 @@ export default defineComponent({
   100% { transform: rotate(360deg); }
 }
 
-.card {
-  background: var(--bg-primary);
+.empty-state {
+  text-align: center;
+  padding: 40px 20px;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: #3498db;
+  margin-bottom: 16px;
+}
+
+.empty-state h3 {
+  margin: 0 0 8px 0;
+  color: #2c3e50;
+}
+
+.empty-state p {
+  margin: 0;
+  color: #6c757d;
+}
+
+.tasks-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.task-card {
+  background: white;
   border-radius: 8px;
-  border: 1px solid var(--border-color);
+  border: 1px solid #e9ecef;
   transition: all 0.2s;
 }
 
-.card:hover {
-  border-color: var(--primary-color);
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+.task-card:hover {
+  border-color: #3498db;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.15);
 }
 
-.card-body {
-  padding: var(--spacing-md);
+.task-card-body {
+  padding: 20px;
+}
+
+.task-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.task-header h4 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 18px;
+  font-weight: 600;
+}
+
+.task-badges {
+  display: flex;
+  gap: 8px;
 }
 
 .workload-badge {
   padding: 4px 8px;
-  border-radius: 4px;
-  font-size: var(--font-size-sm);
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 500;
+  color: white;
 }
 
 .workload-badge.light {
-  background-color: var(--success-color);
-  color: white;
+  background: #28a745;
 }
 
 .workload-badge.medium {
-  background-color: var(--warning-color);
-  color: black;
+  background: #ffc107;
+  color: #000;
 }
 
 .workload-badge.heavy {
-  background-color: var(--danger-color);
-  color: white;
+  background: #dc3545;
 }
 
 .status-badge {
   padding: 4px 8px;
-  border-radius: 4px;
-  font-size: var(--font-size-sm);
+  border-radius: 12px;
+  font-size: 11px;
   font-weight: 500;
 }
 
 .status-badge.completed {
-  background-color: var(--success-color);
+  background: #28a745;
   color: white;
 }
 
 .status-badge.pending {
-  background-color: var(--warning-color);
-  color: black;
+  background: #ffc107;
+  color: #000;
+}
+
+.task-description {
+  margin: 0 0 12px 0;
+  color: #6c757d;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.task-info {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 16px;
+  font-size: 14px;
+  color: #6c757d;
+}
+
+.head-info,
+.workload-info {
+  display: flex;
+  gap: 8px;
 }
 
 .todo-section {
-  border-top: none;
-  padding-top: var(--spacing-md);
+  border-top: 1px solid #e9ecef;
+  padding-top: 20px;
+}
+
+.todo-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+}
+
+.todo-header h5 {
+  margin: 0;
+  color: #2c3e50;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.todo-count {
+  background: #f8f9fa;
+  color: #6c757d;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.todo-input-group {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 20px;
+  padding: 16px;
+  background: #f8f9fa;
+  border-radius: 8px;
+  border: 2px dashed #dee2e6;
+  transition: all 0.2s;
+}
+
+.todo-input-group:focus-within {
+  border-color: #3498db;
+  background: #fff;
+}
+
+.todo-input {
+  flex: 1;
+  padding: 12px 16px;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.todo-input:focus {
+  outline: none;
+  border-color: #3498db;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.1);
+}
+
+.btn {
+  padding: 12px 20px;
+  border: none;
+  border-radius: 6px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-icon {
+  font-size: 16px;
+  font-weight: bold;
+}
+
+.btn-primary {
+  background: linear-gradient(135deg, #3498db, #2980b9);
+  color: white;
+  box-shadow: 0 2px 4px rgba(52, 152, 219, 0.3);
+}
+
+.btn-primary:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2980b9, #21618c);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(52, 152, 219, 0.4);
+}
+
+.btn-primary:disabled {
+  background: #bdc3c7;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .todo-list {
-  list-style: none;
-  padding: 0;
-  display: block !important;
-  visibility: visible !important;
-  opacity: 1 !important;
-  z-index: 1 !important;
+  margin-top: 16px;
+}
+
+.todo-group {
+  margin-bottom: 24px;
+}
+
+.todo-group-title {
+  margin: 0 0 12px 0;
+  color: #495057;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.completed-group .todo-group-title {
+  color: #6c757d;
+}
+
+.todo-items {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 
 .todo-item {
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 8px 0;
-  border-bottom: 1px solid #eee;
+  gap: 12px;
+  padding: 12px 16px;
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  transition: all 0.2s;
 }
 
-.todo-item:last-child {
-  border-bottom: none;
+.todo-item:hover {
+  border-color: #3498db;
+  box-shadow: 0 2px 8px rgba(52, 152, 219, 0.1);
 }
 
 .todo-item.completed {
-  opacity: 0.6;
+  background: #f8f9fa;
+  border-color: #dee2e6;
 }
 
 .todo-checkbox {
-  width: 18px;
-  height: 18px;
+  width: 20px;
+  height: 20px;
   cursor: pointer;
+  accent-color: #3498db;
+  flex-shrink: 0;
+}
+
+.todo-text {
+  flex: 1;
+  font-size: 14px;
+  line-height: 1.4;
+  cursor: pointer;
+  padding: 4px 0;
+  border-radius: 4px;
+  transition: background-color 0.2s;
+}
+
+.todo-text:hover {
+  background-color: #f8f9fa;
+  padding-left: 8px;
+  padding-right: 8px;
 }
 
 .todo-completed {
   text-decoration: line-through;
-  color: #999;
+  color: #6c757d;
+  opacity: 0.7;
+}
+
+.todo-edit-form {
+  flex: 1;
+}
+
+.todo-edit-input {
+  width: 100%;
+  padding: 8px 12px;
+  border: 2px solid #3498db;
+  border-radius: 4px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.todo-edit-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(52, 152, 219, 0.2);
+}
+
+.todo-actions {
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.2s;
+}
+
+.todo-item:hover .todo-actions {
+  opacity: 1;
+}
+
+.todo-action-btn {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 12px;
+  transition: all 0.2s;
+  background: #f8f9fa;
+}
+
+.edit-btn:hover {
+  background: #3498db;
+  color: white;
+  transform: scale(1.1);
+}
+
+.delete-btn:hover {
+  background: #e74c3c;
+  color: white;
+  transform: scale(1.1);
 }
 
 .no-todos {
-  color: #999;
   text-align: center;
-  padding: 16px 0;
+  padding: 40px 20px;
+  color: #6c757d;
 }
 
-.todo-input-group {
-  align-items: center;
+.no-todos-icon {
+  font-size: 48px;
+  margin-bottom: 16px;
+  opacity: 0.5;
 }
 
-.todo-input {
-  flex: 1;
-  padding: var(--spacing-sm);
-  border: 1px solid var(--border-color);
-  border-radius: 4px;
-  font-size: var(--font-size-base);
-  outline: none;
-}
-
-.todo-input:focus {
-  border-color: var(--primary-color);
-  box-shadow: 0 0 0 2px rgba(52, 152, 219, 0.2);
-}
-
-.btn-primary {
-  padding: 8px 16px;
-  border-radius: 4px;
-  font-size: var(--font-size-base);
+.no-todos p {
+  margin: 0 0 8px 0;
+  font-size: 16px;
   font-weight: 500;
-  background-color: var(--primary-color);
-  color: white;
-  border: none;
-  cursor: pointer !important;
-  -webkit-user-select: none;
-  user-select: none;
-  transition: opacity 0.2s;
-  pointer-events: auto !important;
 }
 
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed !important;
-  pointer-events: none !important;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-hover);
-}
-
-.btn-link {
-  background: none;
-  border: none;
-  color: var(--primary-color);
-  font-size: var(--font-size-sm);
-  cursor: pointer;
-  padding: 0;
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.btn-link:hover {
-  text-decoration: underline;
+.no-todos-hint {
+  font-size: 14px;
+  opacity: 0.8;
 }
 </style>

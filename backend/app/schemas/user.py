@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field, EmailStr
 from typing import Optional, List
 import enum
 
@@ -32,14 +32,19 @@ class UserLogin(BaseModel):
 
 class UserUpdate(BaseModel):
     """用户信息更新请求体"""
-    username: Optional[str] = None
-    email: Optional[str] = None
+    username: str = Field(..., min_length=1, max_length=50)
+    email: EmailStr
     password: Optional[str] = None
     role: Optional[UserRole] = None
     profile: Optional[str] = None
     task_id: Optional[int] = None
     performance: Optional[float] = None
     outstanding: Optional[bool] = None
+
+class PasswordChange(BaseModel):
+    """密码更改请求体"""
+    current_password: str = Field(..., min_length=1)
+    new_password: str = Field(..., min_length=6)
 
 class User(UserBase):
     """用户完整信息"""

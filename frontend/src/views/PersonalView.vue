@@ -7,20 +7,21 @@
     <div v-else-if="error" class="error-message text-danger p-md">
       {{ error }}
     </div>
-    <div v-else-if="!currentTask" class="empty-state text-center p-xl">
+    <div v-else-if="inProgressTasks.length === 0" class="empty-state text-center p-xl">
       <div class="empty-icon">📝</div>
-      <h3>暂无任务</h3>
+      <h3>暂无进行中的任务</h3>
       <p class="text-muted">等待任务分配</p>
     </div>
-    <Todolist v-else :task="currentTask" />
+    <div v-else class="todolist-container">
+      <Todolist v-for="task in inProgressTasks" :key="task.id" :task="task" />
+    </div>
   </div>
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useTaskStore } from '@/stores/task';
-import Todolist from '@/components/tasks/Todolist.vue';
-import type { Task } from '@/types/index';
+import Todolist from '@/components/tasks/TodoList.vue';
 
 export default defineComponent({
   name: 'PersonalTable',
@@ -31,16 +32,16 @@ export default defineComponent({
     const taskStore = useTaskStore();
     const loading = ref(true);
     const error = ref('');
-    const currentTask = ref<Task | null>(null);
 
-    const loadUserTask = async () => {
+    const inProgressTasks = computed(() => {
+      return taskStore.tasks.filter(task => !task.finished);
+    });
+
+    const loadUserTasks = async () => {
       loading.value = true;
       error.value = '';
       try {
         await taskStore.fetchTasks();
-        // 获取第一个未完成的任务
-        const unfinishedTask = taskStore.tasks.find(task => !task.finished);
-        currentTask.value = unfinishedTask || null;
       } catch (err: any) {
         error.value = err.message || '加载任务失败';
       } finally {
@@ -49,13 +50,13 @@ export default defineComponent({
     };
 
     onMounted(() => {
-      loadUserTask();
+      loadUserTasks();
     });
 
     return {
       loading,
       error,
-      currentTask
+      inProgressTasks
     };
   }
 });
@@ -64,21 +65,22 @@ export default defineComponent({
 <style scoped>
 @import '@/assets/styles/main.css';
 .personal-table {
-  padding: var(--spacing-lg);
+  padding: 16px;
 }
 
 .loading-state {
   display: flex;
   flex-direction: column;
   align-items: center;
-  gap: var(--spacing-md);
+  gap: 12px;
+  padding: 20px;
 }
 
 .loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #3498db;
+  width: 32px;
+  height: 32px;
+  border: 3px solid #f3f3f3;
+  border-top: 3px solid #3498db;
   border-radius: 50%;
   animation: spin 1s linear infinite;
 }
@@ -90,16 +92,24 @@ export default defineComponent({
 
 .empty-state {
   text-align: center;
-  padding: var(--spacing-xl);
+  padding: 24px;
 }
 
 .empty-icon {
-  font-size: 48px;
-  margin-bottom: var(--spacing-md);
+  font-size: 40px;
+  margin-bottom: 12px;
+  color: #3498db;
 }
 
 .error-message {
   text-align: center;
-  color: var(--danger-color);
+  color: #dc3545;
+  padding: 12px;
+}
+
+.todolist-container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
 }
 </style>

@@ -2,9 +2,9 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
 from app.models.user import User as UserModel, UserRole
-from app.schemas.user import UserCreate, UserLogin, User as UserSchema
+from app.schemas.user import UserCreate, UserLogin, User as UserSchema, UserUpdate, PasswordChange
 from app.core.config import settings
-from app.core.security import create_access_token, verify_password
+from app.core.security import create_access_token, verify_password, get_password_hash
 from app.api.dependencies import get_current_user
 from app.services.user import create_user
 
@@ -58,3 +58,67 @@ def read_users_me(current_user: UserModel = Depends(get_current_user)):
     获取当前登录用户信息
     """
     return current_user
+
+@router.put("/update-profile", response_model=UserSchema)
+def update_profile(
+    user_update: UserUpdate,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """
+    更新用户基本信息（用户名和邮箱）
+    """
+    # 检查用户名是否已被其他用户使用
+    if user_update.username != current_user.username:
+        existing_user = db.query(UserModel).filter(
+            UserModel.username == user_update.username,
+            UserModel.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Username already taken")
+    
+    # 检查邮箱是否已被其他用户使用
+    if user_update.email != current_user.email:
+        existing_user = db.query(UserModel).filter(
+            UserModel.email == user_update.email,
+            UserModel.id != current_user.id
+        ).first()
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already taken")
+    
+    # 更新用户信息
+    current_user.username = user_update.username
+    current_user.email = user_update.email
+    
+    db.commit()
+    db.refresh(current_user)
+    
+    return current_user
+
+@router.put("/change-password")
+def change_password(
+    password_change: PasswordChange,
+    db: Session = Depends(get_db),
+    current_user: UserModel = Depends(get_current_user)
+):
+    """
+    修改用户密码
+    """
+    # 验证当前密码
+    if not verify_password(password_change.current_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+    
+    # 密码强度校验
+    if len(password_change.new_password) < 6:
+        raise HTTPException(status_code=400, detail="New password must be at least 6 characters long")
+    
+    # 检查新密码是否与当前密码相同
+    if verify_password(password_change.new_password, current_user.hashed_password):
+        raise HTTPException(status_code=400, detail="New password must be different from current password")
+    
+    # 更新密码
+    current_user.hashed_password = get_password_hash(password_change.new_password)
+    
+    db.commit()
+    
+    return {"success": True, "message": "Password changed successfully"}

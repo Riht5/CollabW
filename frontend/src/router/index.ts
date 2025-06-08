@@ -51,7 +51,7 @@ const routes = [
   {
     path: '/personal',
     name: 'PersonalTable',
-    component: () => import('@/views/PersonalTable.vue')
+    component: () => import('@/views/PersonalView.vue')
   }
 ];
 
