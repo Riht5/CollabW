@@ -47,6 +47,11 @@ const routes = [
     name: 'Gantt',
     component: () => import('@/views/GanttView.vue'),
     meta: { requiresAuth: true}
+  },
+  {
+    path: '/personal',
+    name: 'PersonalTable',
+    component: () => import('@/views/PersonalView.vue')
   }
 ];
 

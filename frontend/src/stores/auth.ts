@@ -73,6 +73,46 @@ export const useAuthStore = defineStore('auth', () => {
     }
   };
 
+  const updateUserInfo = async (userData: { username: string; email: string }) => {
+    try {
+      const response = await axios.put('/api/auth/update-profile', userData);
+      
+      if (response.data.success) {
+        // Update the user data in store
+        if (user.value) {
+          user.value.username = userData.username;
+          user.value.email = userData.email;
+        }
+        
+        // Update localStorage
+        const updatedUser = { ...user.value, ...userData };
+        localStorage.setItem('user', JSON.stringify(updatedUser));
+        
+        return response.data;
+      } else {
+        throw new Error(response.data.message || '更新失败');
+      }
+    } catch (error: any) {
+      console.error('Update user info error:', error);
+      throw new Error(error.response?.data?.message || '更新用户信息失败');
+    }
+  };
+
+  const changePassword = async (passwordData: { currentPassword: string; newPassword: string }) => {
+    try {
+      const response = await axios.put('/api/auth/change-password', passwordData);
+      
+      if (response.data.success) {
+        return response.data;
+      } else {
+        throw new Error(response.data.message || '密码修改失败');
+      }
+    } catch (error: any) {
+      console.error('Change password error:', error);
+      throw new Error(error.response?.data?.message || '密码修改失败');
+    }
+  };
+
   // 初始化认证状态
   initAuth();
   
@@ -84,6 +124,8 @@ export const useAuthStore = defineStore('auth', () => {
     isAuthenticated, 
     register,
     getCurrentUser,
-    initAuth
+    initAuth,
+    updateUserInfo,
+    changePassword
   };
 });
