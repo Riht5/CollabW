@@ -1,5 +1,6 @@
 import axios from 'axios';
 import { useAuthStore } from '@/stores/auth';
+import router from '@/router';
 
 // 请求拦截器
 axios.interceptors.request.use(
@@ -25,8 +26,8 @@ axios.interceptors.response.use(
       // Token过期或无效，清除登录状态
       const authStore = useAuthStore();
       authStore.logout();
-      // 可以选择跳转到登录页
-      // window.location.href = '/login';
+      // 跳转到登录页
+      router.push('/login');
     }
     return Promise.reject(error);
   }

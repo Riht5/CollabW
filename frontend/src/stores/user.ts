@@ -6,6 +6,7 @@ import type { User } from '@/types/index';
 export const useUserStore = defineStore('user', () => {
   const users = ref<User[]>([]);
   const outstandingUsers = ref<User[]>([]);
+  const currentUser = ref<User | null>(null);
   const loading = ref(false);
   const error = ref<string | null>(null);
 
@@ -17,6 +18,23 @@ export const useUserStore = defineStore('user', () => {
       users.value = response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch users';
+    } finally {
+      loading.value = false;
+    }
+  };
+
+  const fetchCurrentUser = async () => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await axios.get('/api/auth/me');
+      currentUser.value = response.data;
+      return response.data;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch current user';
+      // 如果获取失败，清空当前用户信息
+      currentUser.value = null;
+      return null;
     } finally {
       loading.value = false;
     }
@@ -95,9 +113,11 @@ export const useUserStore = defineStore('user', () => {
   return {
     users,
     outstandingUsers,
+    currentUser,
     loading,
     error,
     fetchUsers,
+    fetchCurrentUser,
     getUserById,
     fetchOutstandingUsers,
     calculatePerformance,

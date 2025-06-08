@@ -21,6 +21,7 @@
 <script lang="ts">
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useTaskStore } from '@/stores/task';
+import { useUserStore } from '@/stores/user';
 import Todolist from '@/components/tasks/TodoList.vue';
 
 export default defineComponent({
@@ -30,17 +31,29 @@ export default defineComponent({
   },
   setup() {
     const taskStore = useTaskStore();
+    const userStore = useUserStore();
     const loading = ref(true);
     const error = ref('');
 
     const inProgressTasks = computed(() => {
-      return taskStore.tasks.filter(task => !task.finished);
+      const currentUserTaskId = userStore.currentUser?.task_id;
+      if (!currentUserTaskId) return [];
+      
+      return taskStore.tasks.filter(task => 
+        !task.finished && 
+        task.id === currentUserTaskId
+      );
     });
 
     const loadUserTasks = async () => {
       loading.value = true;
       error.value = '';
       try {
+        // 确保当前用户信息已加载
+        if (!userStore.currentUser) {
+          await userStore.fetchCurrentUser();
+        }
+        // 然后获取任务列表
         await taskStore.fetchTasks();
       } catch (err: any) {
         error.value = err.message || '加载任务失败';

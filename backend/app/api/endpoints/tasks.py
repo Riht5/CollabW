@@ -21,17 +21,20 @@ def create_task(task: TaskCreate, db: Session = Depends(get_db)):
     if not project:
         raise HTTPException(status_code=404, detail="Project not found")
     
-    # 验证负责人是否存在（如果指定了）
-    if task.head_id:
-        head = db.query(UserModel).filter(UserModel.id == task.head_id).first()
-        if not head:
-            raise HTTPException(status_code=404, detail="Head user not found")
-        head.task_id = task.id  # 设置负责人任务ID
-    
+    # 创建任务
     db_task = TaskModel(**task.model_dump())
     db.add(db_task)
     db.commit()
     db.refresh(db_task)
+    
+    # 验证并设置负责人任务ID（任务创建后）
+    if task.head_id:
+        head = db.query(UserModel).filter(UserModel.id == task.head_id).first()
+        if not head:
+            raise HTTPException(status_code=404, detail="Head user not found")
+        head.task_id = db_task.id  # 使用数据库任务的ID
+        db.commit()
+    
     update_project_progress(db_task.project_id, db)  # 更新项目进度
     return db_task
 

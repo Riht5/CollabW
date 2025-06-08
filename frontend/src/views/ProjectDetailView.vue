@@ -79,7 +79,25 @@
         </div>
       </div>
 
-      <div class="card">
+      <div v-if="burnDownData?.ideal_progresses?.length !== 0 || null" class="mt-lg">
+        <div class="card">
+          <div class="card-header d-flex justify-between align-center">
+            <h2>燃尽图</h2>
+            <span 
+              class="wraning-from" :class="burnDownData?.risk_level">
+              {{ RiskLevelText(burnDownData?.risk_level ?? RiskLevel.NONE) }}
+            </span>
+          </div>
+          <div class="card-body">
+            <BurnoutDiagram 
+              :actualProgresses="burnDownData?.actual_progresses ?? []"
+              :idealProgresses="burnDownData?.ideal_progresses ?? []"
+            />
+          </div>
+        </div>
+      </div>
+
+      <div class="card mt-lg mb-lg">
         <div class="card-header d-flex justify-between align-center">
           <h2>项目任务 ({{ projectTasks.length }})</h2>
           <button @click="showTaskModal = true" class="btn btn-primary btn-sm">
@@ -98,25 +116,6 @@
           />
         </div>
       </div>
-
-      <div v-if="burnDownData?.ideal_progresses?.length !== 0 || null">
-        <div class="card">
-          <div class="card-header d-flex justify-between align-center">
-            <h2>燃尽图</h2>
-            <span 
-              class="wraning-from" :class="burnDownData?.risk_level">
-              {{ RiskLevelText(burnDownData?.risk_level ?? RiskLevel.NONE) }}
-            </span>
-          </div>
-          <div class="card-body">
-            <BurnoutDiagram 
-              :actualProgresses="burnDownData?.actual_progresses ?? []"
-              :idealProgresses="burnDownData?.ideal_progresses ?? []"
-            />
-          </div>
-        </div>
-      </div>
-
 
       <!-- Modals -->
       <UserAssignModal

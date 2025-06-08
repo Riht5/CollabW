@@ -30,8 +30,8 @@ export default defineComponent({
   setup() {
     const authStore = useAuthStore();
 
-    onMounted(() => {
-      authStore.initAuth();
+    onMounted(async () => {
+      await authStore.initAuth();
     });
 
     return {

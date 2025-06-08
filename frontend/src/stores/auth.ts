@@ -8,12 +8,21 @@ export const useAuthStore = defineStore('auth', () => {
   const token = ref('');
 
   // 初始化时检查本地存储的token
-  const initAuth = () => {
+  const initAuth = async () => {
     const storedToken = localStorage.getItem('token');
     if (storedToken) {
       token.value = storedToken;
       // 设置axios默认header
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      
+      // 尝试获取当前用户信息
+      try {
+        await getCurrentUser();
+      } catch (error) {
+        console.error('Failed to get user info on init:', error);
+        // 如果获取用户信息失败，清除无效token
+        logout();
+      }
     }
   };
 
