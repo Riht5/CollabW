@@ -99,16 +99,19 @@
         </div>
       </div>
 
-      <div v-if="idealProgresses?.length !== 0">
-      <div v-if="idealProgresses?.length !== 0">
+      <div v-if="burnDownData?.ideal_progresses?.length !== 0 || null">
         <div class="card">
           <div class="card-header d-flex justify-between align-center">
             <h2>燃尽图</h2>
+            <span 
+              class="wraning-from" :class="burnDownData?.risk_level">
+              {{ RiskLevelText(burnDownData?.risk_level ?? RiskLevel.NONE) }}
+            </span>
           </div>
           <div class="card-body">
             <BurnoutDiagram 
-              :projectProgresses="projectProgresses || []" 
-              :idealProgresses="idealProgresses" 
+              :actualProgresses="burnDownData?.actual_progresses ?? []"
+              :idealProgresses="burnDownData?.ideal_progresses ?? []"
             />
           </div>
         </div>
@@ -149,11 +152,11 @@ import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
 import { useTaskStore } from '@/stores/task';
 import TaskList from '@/components/tasks/TaskList.vue';
-import BurnoutDiagram from '@/components/tasks/burnoutDiagram.vue';
+import BurnoutDiagram from '@/components/tasks/BurnoutDiagram.vue';
 import UserAssignModal from '@/components/modals/UserAssignModal.vue';
 import TaskCreateModal from '@/components/modals/TaskCreateModal.vue';
 import TaskEditModal from '@/components/modals/TaskEditModal.vue';
-import { Project, Task, User, ProjectProgress} from '@/types/index';
+import { Project, Task, User, BurnDownProject , RiskLevel } from '@/types/index';
 
 export default defineComponent({
   name: 'ProjectDetailView',
@@ -173,8 +176,7 @@ export default defineComponent({
     const project = ref<Project | null>(null);
     const projectTasks = ref<Task[]>([]);
     const projectMembers = ref<User[]>([]);
-    const projectProgresses = ref<ProjectProgress[]>([])
-    const idealProgresses = ref<ProjectProgress[]>([])
+    const burnDownData = ref<BurnDownProject | null>(null)
     const loading = ref(false);
     const error = ref('');
     const showAssignModal = ref(false);
@@ -201,6 +203,17 @@ export default defineComponent({
       return roleMap[role] || role;
     };
 
+    const RiskLevelText = (level: RiskLevel) => {
+      const levelMap: Record<RiskLevel, string> = {
+        [RiskLevel.NONE]: "无延期风险，继续保持",
+        [RiskLevel.LOW]: "低风险状态，请关注趋势",
+        [RiskLevel.MEDIUM]: "中度风险，建议优化计划",
+        [RiskLevel.HIGH]: "高风险，需立即干预",
+        [RiskLevel.CRITICAL]: "严重风险，项目可能延期"
+      };
+      return levelMap[level] || level;
+    };
+
     const formatDate = (dateStr?: string) => {
       if (!dateStr) return '';
       return new Date(dateStr).toLocaleDateString();
@@ -222,23 +235,11 @@ export default defineComponent({
         project.value = projectData;
         projectTasks.value = tasks;
         projectMembers.value = members;
+
+        // 获取燃尽图板块的数据
+        burnDownData.value = await projectStore.fetchBurnDown(projectId);
       } catch (err: any) {
         error.value = err.message || '加载项目失败';
-      } finally {
-        loading.value = false;
-      }
-    };
-
-    const fetchProjectProgress = async () => {
-      loading.value = true;
-      error.value = '';
-      try {
-        const projectId = route.params.id as string;
-        projectProgresses.value = await projectStore.fetchProjectProgresses(projectId);
-        idealProgresses.value = await projectStore.fetchIdealProjectProgresses(projectId);
-        console.log('src/views/ProjectDetailView fetchProjectProgress: ', idealProgresses.value || []);
-      } catch (err: any) {
-        error.value = err.message || '加载项目进程失败';
       } finally {
         loading.value = false;
       }
@@ -327,50 +328,6 @@ export default defineComponent({
       }
     };
 
-    const handleTaskReorder = async (reorderedTasks: Task[]) => {
-      try {
-        // 更新本地状态
-        projectTasks.value = reorderedTasks;
-        
-        // 可以在这里调用API更新服务器端的任务顺序
-        // await taskStore.updateTaskOrder(reorderedTasks.map((task, index) => ({
-        //   id: task.id,
-        //   order: index
-        // })));
-        
-        console.log('任务顺序已更新:', reorderedTasks.map(t => t.name));
-      } catch (err) {
-        console.error('更新任务顺序失败:', err);
-        // 如果更新失败，重新获取数据
-        await fetchProject();
-      }
-    };
-
-    const goBackToProjects = () => {
-      router.push('/projects');
-    };
-
-    const handleTaskDeleted = () => {
-      showEditTaskModal.value = false;
-      editingTask.value = null;
-      fetchProject();
-    };
-
-    const handleTaskUpdate = async (taskId: number, updateData: Partial<Task>) => {
-      try {
-        await taskStore.updateTask(taskId, updateData);
-        // 更新本地数据
-        const taskIndex = projectTasks.value.findIndex(t => t.id === taskId);
-        if (taskIndex !== -1) {
-          projectTasks.value[taskIndex] = { ...projectTasks.value[taskIndex], ...updateData };
-        }
-        console.log('任务更新成功:', updateData);
-      } catch (err) {
-        console.error('更新任务失败:', err);
-        // 如果更新失败，重新获取数据
-        await fetchProject();
-      }
-    };
 
     const handleTaskReorder = async (reorderedTasks: Task[]) => {
       try {
@@ -395,17 +352,13 @@ export default defineComponent({
       router.push('/projects');
     };
 
-    onMounted(() => {
-      fetchProject()
-      fetchProjectProgress()
-    })
+    onMounted(fetchProject);
 
     return {
       project,
-      projectProgresses,
-      idealProgresses,
       projectTasks,
       projectMembers,
+      burnDownData,
       loading,
       error,
       showAssignModal,
@@ -413,8 +366,10 @@ export default defineComponent({
       showEditTaskModal,
       editingTask,
       selectedTask,
+      RiskLevel,
       getStatusText,
       getRoleText,
+      RiskLevelText,
       formatDate,
       fetchProject,
       removeUser,
@@ -450,5 +405,4 @@ export default defineComponent({
   background: var(--secondary-color);
   color: white;
 }
-
 </style>

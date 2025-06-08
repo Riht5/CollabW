@@ -1,29 +1,26 @@
 <template>
   <div class="d-flex flex-column gap-md">
-    <div class="burn-down-container">
-        <!-- 图表容器 -->
-        <div ref="chart" class="chart"></div>
-    </div>
+      <!-- 图表容器 -->
+      <div ref="chart" class="chart"></div>
   </div>
 </template>
 
 <script lang="ts">
-import { ref, defineComponent, onMounted, onBeforeUnmount, nextTick } from 'vue';
+import { ref, defineComponent, onMounted, onBeforeUnmount } from 'vue';
 import { ProjectProgress } from '@/types/index';
 import * as echarts from 'echarts'
 
-// 定义组件
 export default defineComponent({
   name: 'BurnDownChart',
   props: {
-    projectProgresses: {
+    actualProgresses: {
       type: Array as () => ProjectProgress[],
       required: true
     },
     idealProgresses: {
       type: Array as () => ProjectProgress[],
       default: []
-    }
+    },
   },
   setup(props) {
     const chart = ref<HTMLDivElement | null>(null)
@@ -31,15 +28,13 @@ export default defineComponent({
 
     // 渲染燃尽图函数
     const renderChart = (data: ProjectProgress[], idealData: ProjectProgress[]) => {
-      // 检查DOM元素是否有效
       if (!chart.value) return;
       
-      // 初始化或获取ECharts实例
       if (!myChart) {
         myChart = echarts.init(chart.value);
       }
       
-      // 处理实际进度数据（转换为剩余工作量百分比）
+      // 处理实际进度数据
       const actualData = data.map(item => ({
         name: item.date,
         value: [item.date, (1 - item.progress) * 100]
@@ -54,7 +49,7 @@ export default defineComponent({
       })).sort((a, b) => 
         new Date(a.name).getTime() - new Date(b.name).getTime()
       );
-      
+
       // 配置图表选项
       const option: echarts.EChartsOption = {
         tooltip: {
@@ -72,7 +67,7 @@ export default defineComponent({
             
             const date = params[0].name;
             const actual = actualParam?.value[1] ?? null;
-            const ideal = idealParam?.value[1] ?? null;
+            const ideal = idealParam?.value[1] ?? 0;
             return `
               <div>日期: ${date}</div>
               <div>实际剩余: ${actual?.toFixed(1)}%</div>
@@ -93,7 +88,6 @@ export default defineComponent({
         },
         xAxis: {
           type: 'time',
-          // 修复 boundaryGap 类型错误 - 使用数组格式
           boundaryGap: [0, '10%'], // [起点, 终点] 百分比格式
           axisLabel: {
             formatter: (value: number) => {
@@ -111,49 +105,22 @@ export default defineComponent({
           name: '剩余工作量'
         },
         series: [
-          {
-            name: '实际进度',
-            type: 'line',
-            showSymbol: true,
-            data: actualData,
-            lineStyle: {
-              width: 2,
-              color: '#3498db'
-            },
-            itemStyle: {
-              color: '#3498db'
-            },
-            markPoint: {
-              data: [
-                { type: 'min', name: '最小值'}
-              ],
-              label: {
-                formatter: function(params: any) {
-                  const value = typeof params.value === 'number' 
-                    ? params.value.toFixed(1) 
-                    : params.value;
-                  return value;
-                },
-                color: '#fff',
-                padding: 2,
-                borderRadius: 4
-              },
-              
-            }
-          },
-          {
-            name: '理想进度',
-            type: 'line',
-            showSymbol: false,
-            data: idealLineData,
-            lineStyle: {
-              width: 2,
-              type: 'dashed',
-              color: '#FF4500'
-            },
-            smooth: true
-          }
-        ],
+        {
+          name: '实际进度',
+          type: 'line',
+          data: actualData,
+          lineStyle: { width: 2, color: '#3498db' },
+          itemStyle: { color: '#3498db' },
+        },
+        {
+          name: '理想进度',
+          showSymbol: false,
+          type: 'line',
+          data: idealLineData,
+          lineStyle: { width: 2, type: 'dashed', color: '#FF4500' },
+          smooth: true
+        }
+      ],
         dataZoom: [
           {
             type: 'inside',
@@ -178,17 +145,11 @@ export default defineComponent({
       
       // 应用配置并渲染图表
       myChart.setOption(option);
-    }
+    };
 
-    // 在组件挂载后渲染图表
-    onMounted(() => {
-      nextTick(() => {
-        renderChart(props.projectProgresses, props.idealProgresses)  // 访问 props.projectProgresses
-      })
-      window.addEventListener('resize', () => {
-        myChart?.resize()
-      })
-    })
+    onMounted(async () => {
+      renderChart(props.actualProgresses, props.idealProgresses)
+    });
 
     // 在组件卸载时销毁图表实例
     onBeforeUnmount(() => {
@@ -196,7 +157,7 @@ export default defineComponent({
     })
 
     return {
-      chart
+      chart,
     }
   }
 })

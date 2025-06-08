@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
-import type { Project, ProjectCreate, Task } from '@/types/index';
+import type { Project, ProjectCreate, Task, BurnDownProject} from '@/types/index';
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([]);
@@ -35,28 +35,14 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
-  const fetchProjectProgresses = async (id: number | string) => {
+  const fetchBurnDown = async (id: number | string) => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/projects/${id}/progress/`);
-      return response.data as ProjectProgress[];
+      const response = await axios.get(`/api/projects/${id}/burn-down/`);
+      return response.data as BurnDownProject;
     } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to fetch project progress';
-      return null;
-    } finally {
-      loading.value = false;
-    }
-  };
-
-  const fetchIdealProjectProgresses = async (id: number | string) => {
-    loading.value = true;
-    error.value = null;
-    try {
-      const response = await axios.get(`/api/projects/${id}/ideal-progress/`);
-      return response.data as ProjectProgress[];
-    } catch (err: any) {
-      error.value = err.response?.data?.detail || 'Failed to fetch ideal project progress';
+      error.value = err.response?.data?.detail || 'Failed to fetch burn down chart data';
       return null;
     } finally {
       loading.value = false;
@@ -187,8 +173,7 @@ export const useProjectStore = defineStore('project', () => {
     error, 
     fetchProjects, 
     fetchProjectById, 
-    fetchProjectProgresses, 
-    fetchIdealProjectProgresses,
+    fetchBurnDown, 
     createProject, 
     updateProject, 
     deleteProject,

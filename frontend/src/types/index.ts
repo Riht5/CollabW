@@ -41,13 +41,6 @@ export interface ProjectCreate {
   end_time?: string;
 }
 
-export interface ProjectProgress {
-  id: number;
-  project_id: number;
-  date: string;
-  progress: number;
-}
-
 export interface TaskCreate {
   name: string;
   description?: string;
@@ -85,4 +78,23 @@ export interface GanttTask {
   progress: number;
   dependencies: string;
   custom_class: string;
+}
+
+export interface ProjectProgress {
+  date: string;
+  progress: number;
+}
+
+export interface BurnDownProject {
+  actual_progresses: ProjectProgress[];
+  ideal_progresses: ProjectProgress[];
+  risk_level: RiskLevel;
+}
+
+export enum RiskLevel {
+  NONE = "NONE",
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
 }
