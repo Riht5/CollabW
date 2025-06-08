@@ -5,7 +5,7 @@ from app.db.session import get_db
 from app.models.user import User as UserModel
 from app.models.task import Task as TaskModel
 from app.schemas.user import UserCreate, UserUpdate, User as UserSchema
-from app.core.security import hash_password
+from app.core.security import get_password_hash
 from app.services.user import create_user, calculate_all_users_performance
 
 router = APIRouter()
@@ -81,7 +81,7 @@ def update_user(user_id: int, user: UserUpdate, db: Session = Depends(get_db)):
     
     # 如果更新密码，需要加密
     if "password" in update_data:
-        update_data["hashed_password"] = hash_password(update_data.pop("password"))
+        update_data["hashed_password"] = get_password_hash(update_data.pop("password"))
     
     for key, value in update_data.items():
         setattr(db_user, key, value)

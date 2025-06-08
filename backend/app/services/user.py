@@ -4,7 +4,7 @@ from app.models.user import User as UserModel
 from app.models.task import Task as TaskModel
 from app.models.project import Project as ProjectModel
 from app.schemas.user import UserCreate, User as UserSchema
-from app.core.security import hash_password
+from app.core.security import get_password_hash
 
 def create_user(user: UserCreate, db: Session, role=None) -> UserSchema:
     """
@@ -25,7 +25,7 @@ def create_user(user: UserCreate, db: Session, role=None) -> UserSchema:
         )
     
     try:
-        hashed_pw = hash_password(user.password)
+        hashed_pw = get_password_hash(user.password)
         new_user = UserModel(
             username=user.username,
             email=user.email,

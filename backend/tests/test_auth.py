@@ -1,11 +1,11 @@
 import pytest
 from fastapi.testclient import TestClient
-from app.core.security import create_access_token, verify_password, hash_password
+from app.core.security import create_access_token, verify_password, get_password_hash
 
 def test_hash_and_verify_password():
     """测试密码加密和验证"""
     password = "testpassword123"
-    hashed = hash_password(password)
+    hashed = get_password_hash(password)
     
     assert hashed != password  # 确保密码被加密
     assert verify_password(password, hashed)  # 验证密码正确

@@ -75,7 +75,20 @@ export const useAuthStore = defineStore('auth', () => {
 
   const updateUserInfo = async (userData: { username: string; email: string }) => {
     try {
-      const response = await axios.put('/api/auth/update-profile', userData);
+      // 添加数据验证
+      if (!userData.username || !userData.email) {
+        throw new Error('用户名和邮箱不能为空');
+      }
+
+      // 确保数据格式正确
+      const requestData = {
+        username: userData.username.trim(),
+        email: userData.email.trim()
+      };
+
+      console.log('Sending update request:', requestData); // 调试日志
+
+      const response = await axios.put('/api/auth/update-profile', requestData);
       
       if (response.data.success) {
         // Update the user data in store
@@ -84,23 +97,34 @@ export const useAuthStore = defineStore('auth', () => {
           user.value.email = userData.email;
         }
         
-        // Update localStorage
-        const updatedUser = { ...user.value, ...userData };
-        localStorage.setItem('user', JSON.stringify(updatedUser));
-        
         return response.data;
       } else {
         throw new Error(response.data.message || '更新失败');
       }
     } catch (error: any) {
       console.error('Update user info error:', error);
-      throw new Error(error.response?.data?.message || '更新用户信息失败');
+      // 添加更详细的错误信息
+      if (error.response?.status === 422) {
+        const detail = error.response.data?.detail;
+        if (Array.isArray(detail)) {
+          const fieldErrors = detail.map(err => `${err.loc?.join('.')}: ${err.msg}`).join(', ');
+          throw new Error(`数据验证失败: ${fieldErrors}`);
+        }
+        throw new Error(detail || '数据格式错误');
+      }
+      throw new Error(error.response?.data?.message || error.message || '更新用户信息失败');
     }
   };
 
   const changePassword = async (passwordData: { currentPassword: string; newPassword: string }) => {
     try {
-      const response = await axios.put('/api/auth/change-password', passwordData);
+      // Convert frontend field names to backend field names
+      const backendData = {
+        current_password: passwordData.currentPassword,
+        new_password: passwordData.newPassword
+      };
+      
+      const response = await axios.put('/api/auth/change-password', backendData);
       
       if (response.data.success) {
         return response.data;

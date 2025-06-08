@@ -59,41 +59,63 @@ def read_users_me(current_user: UserModel = Depends(get_current_user)):
     """
     return current_user
 
-@router.put("/update-profile", response_model=UserSchema)
+@router.put("/update-profile")
 def update_profile(
-    user_update: UserUpdate,
-    db: Session = Depends(get_db),
-    current_user: UserModel = Depends(get_current_user)
+    user_data: UserUpdate,
+    current_user: UserModel = Depends(get_current_user),
+    db: Session = Depends(get_db)
 ):
     """
-    更新用户基本信息（用户名和邮箱）
+    更新用户资料
     """
-    # 检查用户名是否已被其他用户使用
-    if user_update.username != current_user.username:
-        existing_user = db.query(UserModel).filter(
-            UserModel.username == user_update.username,
-            UserModel.id != current_user.id
-        ).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Username already taken")
-    
-    # 检查邮箱是否已被其他用户使用
-    if user_update.email != current_user.email:
-        existing_user = db.query(UserModel).filter(
-            UserModel.email == user_update.email,
-            UserModel.id != current_user.id
-        ).first()
-        if existing_user:
-            raise HTTPException(status_code=400, detail="Email already taken")
-    
-    # 更新用户信息
-    current_user.username = user_update.username
-    current_user.email = user_update.email
-    
-    db.commit()
-    db.refresh(current_user)
-    
-    return current_user
+    try:
+        # 检查用户名是否已被其他用户使用
+        if user_data.username and user_data.username != current_user.username:
+            existing_user = db.query(UserModel).filter(
+                UserModel.username == user_data.username,
+                UserModel.id != current_user.id
+            ).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Username already exists"
+                )
+
+        # 检查邮箱是否已被其他用户使用
+        if user_data.email and user_data.email != current_user.email:
+            existing_user = db.query(UserModel).filter(
+                UserModel.email == user_data.email,
+                UserModel.id != current_user.id
+            ).first()
+            if existing_user:
+                raise HTTPException(
+                    status_code=400,
+                    detail="Email already exists"
+                )
+
+        # 更新用户信息
+        update_data = user_data.model_dump(exclude_unset=True)
+        for key, value in update_data.items():
+            if hasattr(current_user, key):
+                setattr(current_user, key, value)
+
+        db.commit()
+        db.refresh(current_user)
+
+        return {
+            "success": True,
+            "message": "Profile updated successfully",
+            "user": current_user
+        }
+
+    except HTTPException:
+        raise
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to update profile: {str(e)}"
+        )
 
 @router.put("/change-password")
 def change_password(

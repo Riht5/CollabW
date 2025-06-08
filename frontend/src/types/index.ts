@@ -70,6 +70,16 @@ export interface AuthResponse {
   token_type: string;
 }
 
+export interface UserUpdate {
+  username: string;
+  email: string;
+}
+
+export interface PasswordChange {
+  current_password: string;
+  new_password: string;
+}
+
 export interface GanttTask {
   id: string;
   name: string;
