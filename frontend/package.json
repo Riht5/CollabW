@@ -10,6 +10,7 @@
     "lint": "eslint . --ext .ts,.vue"
   },
   "dependencies": {
+    "ant-design-vue": "^4.2.6",
     "axios": "",
     "frappe-gantt": "^1.0.3",
     "pinia": "",

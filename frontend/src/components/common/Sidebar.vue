@@ -17,6 +17,10 @@
         <i class="icon">📅</i>
         <span>甘特图</span>
       </router-link>
+      <router-link to="/personal" class="nav-item" :class="{ active: $route.name === 'PersonalTable' }">
+        <i class="icon">👤</i>
+        <span>个人工作台</span>
+      </router-link>
     </nav>
   </aside>
 </template>
