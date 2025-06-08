@@ -278,8 +278,8 @@ onActivated(async () => {
 watch(
   () => [ganttStore.ganttAllData, ganttContainer.value],
   ([newData, container]) => {
-    console.log('Watch 触发，数据长度:', newData.length, '容器:', !!container, 'Gantt 实例:', !!gantt.value);
-    if (newData.length && container) {
+    console.log('Watch 触发，数据长度:', Array.isArray(newData) ? newData.length : '非数组', '容器:', !!container, 'Gantt 实例:', !!gantt.value);
+    if (Array.isArray(newData) && newData.length && container) {
       initializeGantt();
     }
   },
