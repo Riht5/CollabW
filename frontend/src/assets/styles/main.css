@@ -4,6 +4,7 @@
 @import './badges.css';
 @import './modal.css';
 @import './components.css';
+@import './burndown.css';
 
 * {
   margin: 0;

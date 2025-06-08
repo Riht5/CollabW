@@ -62,3 +62,4 @@ class ProjectProgress(Base):
     
     # 关系：进度记录属于某个项目
     project = relationship("Project", backref="progress_records")
+

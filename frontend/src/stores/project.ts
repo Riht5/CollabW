@@ -1,7 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import axios from 'axios';
-import type { Project, ProjectCreate, Task } from '@/types/index';
+import type { Project, ProjectCreate, Task, BurnDownProject} from '@/types/index';
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([]);
@@ -35,12 +35,26 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
+  const fetchBurnDown = async (id: number | string) => {
+    loading.value = true;
+    error.value = null;
+    try {
+      const response = await axios.get(`/api/projects/${id}/burn-down/`);
+      return response.data as BurnDownProject;
+    } catch (err: any) {
+      error.value = err.response?.data?.detail || 'Failed to fetch burn down chart data';
+      return null;
+    } finally {
+      loading.value = false;
+    }
+  };
+
   const createProject = async (project: ProjectCreate) => {
     loading.value = true;
     error.value = null;
     try {
       const response = await axios.post('/api/projects/', project);
-      await fetchProjects();
+      await fetchProjects(); // 重新获取项目列表
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to create project';
@@ -153,14 +167,15 @@ export const useProjectStore = defineStore('project', () => {
     }
   };
 
-  return {
-    projects,
-    loading,
-    error,
-    fetchProjects,
-    fetchProjectById,
-    createProject,
-    updateProject,
+  return { 
+    projects, 
+    loading, 
+    error, 
+    fetchProjects, 
+    fetchProjectById, 
+    fetchBurnDown, 
+    createProject, 
+    updateProject, 
     deleteProject,
     addDependencies,
     assignUsersToProject,

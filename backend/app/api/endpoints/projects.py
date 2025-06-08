@@ -1,14 +1,16 @@
 from fastapi import APIRouter, HTTPException, Depends, Body
 from typing import List
-from app.models.project import Project as ProjectModel
+from app.models.project import Project as ProjectModel, ProjectProgress as ProjectProgressModel
 from app.models.task import Task as TaskModel
 from app.models.user import User as UserModel
-from app.schemas.project import ProjectCreate, Project, ProjectUpdate
+from app.schemas.project import ProjectCreate, Project, ProjectUpdate, ProjectProgress
+from app.schemas.burndown import BurnDownProject
 from app.schemas.task import Task as TaskSchema
 from app.schemas.user import User as UserSchema
 from app.db.session import get_db
-from app.services.project import update_project_progress
+from app.services.project import update_project_progress, get_filled_project_progress, get_ideal_project_progress, analyse_warning_level
 from sqlalchemy.orm import Session
+from datetime import datetime, timedelta
 
 # 创建路由
 router = APIRouter()
@@ -120,3 +122,24 @@ def get_project_members(project_id: int, db: Session = Depends(get_db)):
     members = db.query(UserModel).filter(UserModel.task_id.in_(task_ids)).distinct().all()
     
     return members
+
+@router.get("/{project_id}/burn-down/", response_model=BurnDownProject)
+def get_burn_down_data(project_id: int, db: Session = Depends(get_db)):
+    """
+    获取燃尽图的数据以及预警等级信息
+    """
+    # 获取实际项目进度
+    actual_progresses = get_filled_project_progress(project_id, db)
+
+    # 获取理想项目进度
+    ideal_progresses = get_ideal_project_progress(project_id, db)
+    
+    # 获取预警等级
+    risk_level = analyse_warning_level(actual_progresses, ideal_progresses)
+
+    burn_down_data = BurnDownProject(
+        actual_progresses=actual_progresses,
+        ideal_progresses=ideal_progresses,
+        risk_level=risk_level
+    )
+    return burn_down_data

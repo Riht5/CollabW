@@ -89,3 +89,22 @@ export interface GanttTask {
   dependencies: string;
   custom_class: string;
 }
+
+export interface ProjectProgress {
+  date: string;
+  progress: number;
+}
+
+export interface BurnDownProject {
+  actual_progresses: ProjectProgress[];
+  ideal_progresses: ProjectProgress[];
+  risk_level: RiskLevel;
+}
+
+export enum RiskLevel {
+  NONE = "NONE",
+  LOW = "LOW",
+  MEDIUM = "MEDIUM",
+  HIGH = "HIGH",
+  CRITICAL = "CRITICAL",
+}
