@@ -1,12 +1,7 @@
 from sqlalchemy import Column, Integer, Float, String, Boolean, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from ..db.base import Base
-import enum
-
-class UserRole(enum.Enum):
-    director = "director"
-    manager = "manager"
-    user = "user"
+from ..core.constants import UserRole
 
 class User(Base):
     """

@@ -5,6 +5,8 @@ from app.models.task import Task as TaskModel
 from app.models.project import Project as ProjectModel
 from app.schemas.user import UserCreate, User as UserSchema
 from app.core.security import get_password_hash
+from app.core.constants import StatusCode, ErrorMessage
+from app.core.utils import create_error_response, safe_commit
 
 def create_user(user: UserCreate, db: Session, role=None) -> UserSchema:
     """
@@ -12,17 +14,11 @@ def create_user(user: UserCreate, db: Session, role=None) -> UserSchema:
     """
     # 检查用户名是否已存在
     if db.query(UserModel).filter(UserModel.username == user.username).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Username already registered"
-        )
+        raise create_error_response(StatusCode.BAD_REQUEST, ErrorMessage.USERNAME_EXISTS)
     
     # 检查邮箱是否已存在
     if db.query(UserModel).filter(UserModel.email == user.email).first():
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST, 
-            detail="Email already registered"
-        )
+        raise create_error_response(StatusCode.BAD_REQUEST, ErrorMessage.EMAIL_EXISTS)
     
     try:
         hashed_pw = get_password_hash(user.password)
@@ -35,14 +31,16 @@ def create_user(user: UserCreate, db: Session, role=None) -> UserSchema:
             task_id=None  # 新用户默认没有任务
         )
         db.add(new_user)
-        db.commit()
+        safe_commit(db, "create user")
         db.refresh(new_user)
         return new_user
+    except HTTPException:
+        raise
     except Exception as e:
         db.rollback()
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail=f"Failed to create user: {str(e)}"
+        raise create_error_response(
+            StatusCode.INTERNAL_SERVER_ERROR,
+            f"Failed to create user: {str(e)}"
         )
 
 def calculate_user_performance(user_id: int, db: Session) -> float:

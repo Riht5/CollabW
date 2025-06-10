@@ -1,11 +1,6 @@
 from pydantic import BaseModel
 from typing import Optional, List
-import enum
-
-class TaskWorkload(str, enum.Enum):
-    light = "light"
-    medium = "medium"
-    heavy = "heavy"
+from ..core.constants import TaskWorkload
 
 class TaskBase(BaseModel):
     """任务基础字段"""

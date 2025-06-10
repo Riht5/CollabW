@@ -2,7 +2,7 @@
 <template>
   <div class="dashboard">
     <div class="dashboard-header">
-      <h1>多项目甘特图</h1>
+      <h1>项目总览</h1>
       <div class="header-actions">
         <!-- 仅 Manager 可见关键路径分析按钮 -->
         <button 
@@ -15,14 +15,11 @@
           <i class="icon">{{ showCriticalPath ? '📊' : '🎯' }}</i>
         </button>
       </div>
-    </div>
-    <div class="dashboard-content">
+    </div>    <div class="dashboard-content">
       <div v-if="!showCriticalPath" class="content-section">
-        <h2>项目总览</h2>
-        <GanttChartTest />
+        <GanttChart />
       </div>
       <div v-if="showCriticalPath && isManager" class="content-section">
-        <h2>关键路径</h2>
         <Suspense>
           <template #default>
             <CriticalPathChart />
@@ -38,7 +35,7 @@
 
 <script lang="ts" setup>
 import { ref, computed } from 'vue';
-import GanttChartTest from '../components/gantt/GanttChart.vue';
+import GanttChart from '../components/gantt/GanttChart.vue';
 import CriticalPathChart from '../components/gantt/CriticalPathChart.vue';
 import { useGanttStore } from '@/stores/gantt';
 import { useAuthStore } from '@/stores/auth';

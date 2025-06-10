@@ -12,7 +12,7 @@
           </div>
           <div class="user-details">
             <span class="username">{{ authStore.user?.username }}</span>
-            <span class="user-role">{{ getRoleText(authStore.user?.role) }}</span>
+            <span class="user-role">{{ getRoleTextDisplay(authStore.user?.role) }}</span>
           </div>
           <div class="dropdown-arrow" :class="{ 'open': showProfileDropdown }">▼</div>
         </div>
@@ -138,6 +138,7 @@
 import { defineComponent, computed, ref, reactive, onMounted, onUnmounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/auth';
+import { getRoleText } from '@/utils/helpers';
 
 export default defineComponent({
   name: 'Header',
@@ -166,13 +167,8 @@ export default defineComponent({
       return authStore.user?.username?.charAt(0).toUpperCase() || 'U';
     });
 
-    const getRoleText = (role: string | undefined) => {
-      const roleMap: Record<string, string> = {
-        'director': '总监',
-        'manager': '经理', 
-        'user': '员工'
-      };
-      return roleMap[role || 'user'] || '员工';
+    const getRoleTextDisplay = (role: string | undefined) => {
+      return getRoleText(role);
     };
 
     const logout = () => {
@@ -326,7 +322,7 @@ export default defineComponent({
     return {
       authStore,
       userInitial,
-      getRoleText,
+      getRoleTextDisplay,
       logout,
       showProfileDropdown,
       isEditing,

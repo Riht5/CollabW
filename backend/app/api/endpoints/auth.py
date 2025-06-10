@@ -1,10 +1,12 @@
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.session import get_db
-from app.models.user import User as UserModel, UserRole
+from app.models.user import User as UserModel
 from app.schemas.user import UserCreate, UserLogin, User as UserSchema, UserUpdate, PasswordChange
 from app.core.config import settings
 from app.core.security import create_access_token, verify_password, get_password_hash
+from app.core.constants import UserRole, StatusCode, ErrorMessage
+from app.core.utils import create_error_response
 from app.api.dependencies import get_current_user
 from app.services.user import create_user
 
@@ -33,11 +35,11 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     """
     # 密码一致性校验
     if user.password != user.confirm_password:
-        raise HTTPException(status_code=400, detail="Passwords do not match")
+        raise create_error_response(StatusCode.BAD_REQUEST, ErrorMessage.PASSWORDS_NOT_MATCH)
     
     # 密码强度校验
     if len(user.password) < 8:
-        raise HTTPException(status_code=400, detail="Password must be at least 8 characters long")
+        raise create_error_response(StatusCode.BAD_REQUEST, ErrorMessage.PASSWORD_TOO_SHORT)
     
     # 注册密钥控制角色
     role_mapping = {
@@ -48,7 +50,7 @@ def register(user: UserCreate, db: Session = Depends(get_db)):
     
     role = role_mapping.get(user.register_key)
     if not role:
-        raise HTTPException(status_code=400, detail="Invalid registration key")
+        raise create_error_response(StatusCode.BAD_REQUEST, ErrorMessage.INVALID_REGISTER_KEY)
     
     return create_user(user, db, role=role)
 

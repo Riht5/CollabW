@@ -1,22 +1,7 @@
 from sqlalchemy import Column, Integer, String, Boolean, Enum, ForeignKey
 from sqlalchemy.orm import relationship
 from ..db.base import Base
-import enum
-
-class TaskWorkload(enum.Enum):
-    light = "light"
-    medium = "medium"
-    heavy = "heavy"
-    
-    @property
-    def weight(self):
-        """返回任务工作量对应的权重值"""
-        weights = {
-            TaskWorkload.light: 1,
-            TaskWorkload.medium: 2,
-            TaskWorkload.heavy: 3
-        }
-        return weights[self]
+from ..core.constants import TaskWorkload
 
 class Task(Base):
     """

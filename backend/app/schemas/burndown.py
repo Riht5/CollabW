@@ -1,14 +1,7 @@
 from pydantic import BaseModel
 from typing import List
 from .project import ProjectProgress
-import enum
-
-class RiskLevel(str, enum.Enum):
-    NONE = "NONE"
-    LOW = "LOW"
-    MEDIUM = "MEDIUM"
-    HIGH = "HIGH"
-    CRITICAL = "CRITICAL"
+from ..core.constants import RiskLevel
 
 
 class BurnDownProjectBase(BaseModel):

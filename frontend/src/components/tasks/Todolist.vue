@@ -12,7 +12,7 @@
           <h4>{{ task.name }}</h4>
           <div class="task-badges">
             <span class="workload-badge" :class="task.workload">
-              {{ getWorkloadText(task.workload) }}
+              {{ getWorkloadTextDisplay(task.workload) }}
             </span>
           </div>
         </div>
@@ -149,6 +149,7 @@
 
 <script lang="ts">
 import { defineComponent, ref, onMounted, nextTick } from 'vue';
+import { getWorkloadText } from '@/utils/helpers';
 import type { Task } from '@/types/index';
 import { useUserStore } from '@/stores/user';
 
@@ -283,15 +284,8 @@ export default defineComponent({
           todoError.value = '';
         }, 3000);
       }
-    };
-
-    const getWorkloadText = (workload: string): string => {
-      const workloadMap: Record<string, string> = {
-        light: '轻量',
-        medium: '中等',
-        heavy: '重量'
-      };
-      return workloadMap[workload] || workload;
+    };    const getWorkloadTextDisplay = (workload: string): string => {
+      return getWorkloadText(workload);
     };
 
     const getHeadUser = (headId: number | null | undefined) => {
@@ -419,10 +413,9 @@ export default defineComponent({
       editingTodo,
       editingText,
       editInput,
-      handleAddTodo,
-      updateTodo,
+      handleAddTodo,      updateTodo,
       handleInput,
-      getWorkloadText,
+      getWorkloadTextDisplay,
       getHeadUser,
       getTodoStats,
       getIncompleteTodos,

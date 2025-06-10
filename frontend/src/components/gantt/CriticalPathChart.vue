@@ -56,25 +56,20 @@
 import { onMounted, onUnmounted, onActivated, ref, computed, watch } from 'vue';
 import Gantt from 'frappe-gantt';
 import { useGanttStore } from '@/stores/gantt';
+import { getGanttViewModeText } from '@/utils/helpers';
 import type { GanttTask } from '@/types/index';
 
 const ganttStore = useGanttStore();
 const gantt = ref<Gantt | null>(null);
 const ganttContainer = ref<HTMLElement | null>(null);
 const wrapperRef = ref<HTMLElement | null>(null);
-const currentViewMode = ref<string>('Day'); // 默认 Day
+const currentViewMode = ref<Gantt.viewMode>('Day'); // 默认 Day
 const showViewModeDropdown = ref<boolean>(false);
-const viewModes: string[] = ['Day', 'Week', 'Month', 'Year'];
+const viewModes: Gantt.viewMode[] = ['Day', 'Week', 'Month', 'Year'];
 
 // 视图模式文本映射
 const getViewModeText = (mode: string): string => {
-  const modeMap: Record<string, string> = {
-    'Day': '日视图',
-    'Week': '周视图',
-    'Month': '月视图', 
-    'Year': '年视图'
-  };
-  return modeMap[mode] || mode;
+  return getGanttViewModeText(mode);
 };
 
 // 添加空白任务填充，动态计算时间范围
@@ -106,7 +101,7 @@ const containerHeight = computed(() => {
   return Math.max(minHeight, taskCount * rowHeight + headerHeight);
 });
 
-const getTimelineRange = (viewMode: string) => {
+const getTimelineRange = (viewMode: Gantt.viewMode) => {
   const tasks = ganttStore.criticalPathGanttData;
   if (!tasks.length) {
     const currentYear = new Date().getFullYear();
@@ -136,8 +131,13 @@ const getTimelineRange = (viewMode: string) => {
 
 const scrollToToday = () => {
   if (gantt.value) {
-    gantt.value.scroll_current();
-    console.log('Scrolled to today');
+    // 使用重新初始化的方式来滚动到今天
+    try {
+      initializeGantt();
+      console.log('Scrolled to today');
+    } catch (err) {
+      console.error('滚动失败:', err);
+    }
   }
 };
 
@@ -145,7 +145,7 @@ const toggleViewModeDropdown = () => {
   showViewModeDropdown.value = !showViewModeDropdown.value;
 };
 
-const changeViewMode = (mode: string) => {
+const changeViewMode = (mode: Gantt.viewMode) => {
   if (!ganttContainer.value || !ganttStore.criticalPathGanttData.length) {
     console.warn('Gantt container or data not ready');
     return;
@@ -163,12 +163,12 @@ const changeViewMode = (mode: string) => {
       column_width: mode === 'Day' ? 30 : mode === 'Week' ? 50 : mode === 'Month' ? 100 : 150,
       scroll_to: startDate,
       language: 'zh-cn',
-      custom_popup_html: (task: GanttTask) => {
+      popup: (task: Gantt.Task) => {
         if (task.custom_class?.includes('placeholder')) return '';
         const startDate = new Date(task.start).toLocaleDateString('zh-CN');
-        const endDate = new Date(task.end).toLocaleDateString('zh-CN');
-        const duration = Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24));
-        const weight = getTaskWeight(task.id);
+        const endDate = task.end ? new Date(task.end).toLocaleDateString('zh-CN') : '';
+        const duration = task.end ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        const weight = getTaskWeight(task.id || '');
         return `
           <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-left: 4px solid #ef4444;">
             <h4 style="margin: 0 0 8px 0; color: #dc2626; font-weight: bold;">🎯 ${task.name}</h4>
@@ -181,17 +181,17 @@ const changeViewMode = (mode: string) => {
           </div>
         `;
       },
-      on_click: (task: GanttTask) => {
+      on_click: (task: Gantt.Task) => {
         if (!task.custom_class?.includes('placeholder')) {
-          const weight = getTaskWeight(task.id);
+          const weight = getTaskWeight(task.id || '');
           console.log('点击关键任务:', task.name, '权重:', weight);
           alert(`关键任务: ${task.name}\n权重: ${weight.toFixed(2)} 天\n\n此任务在关键路径上，任何延期都会影响项目整体进度！`);
         }
       },
-      on_date_change: (task: GanttTask, start: string, end: string) => {
-        console.log('关键任务日期变更:', task.name, start, end);
+      on_date_change: (task: Gantt.Task, start: Date, end: Date) => {
+        console.log('关键任务日期变更:', task.name, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
       },
-      on_progress_change: (task: GanttTask, progress: number) => {
+      on_progress_change: (task: Gantt.Task, progress: number) => {
         console.log('关键任务进度变更:', task.name, progress);
       }
     });
@@ -249,12 +249,12 @@ const initializeGantt = () => {
       column_width: currentViewMode.value === 'Day' ? 30 : currentViewMode.value === 'Week' ? 50 : currentViewMode.value === 'Month' ? 100 : 150,
       scroll_to: startDate,
       language: 'zh-cn',
-      custom_popup_html: (task: GanttTask) => {
+      popup: (task: Gantt.Task) => {
         if (task.custom_class?.includes('placeholder')) return '';
         const startDate = new Date(task.start).toLocaleDateString('zh-CN');
-        const endDate = new Date(task.end).toLocaleDateString('zh-CN');
-        const duration = Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24));
-        const weight = getTaskWeight(task.id);
+        const endDate = task.end ? new Date(task.end).toLocaleDateString('zh-CN') : '';
+        const duration = task.end ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        const weight = getTaskWeight(task.id || '');
         return `
           <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-left: 4px solid #ef4444;">
             <h4 style="margin: 0 0 8px 0; color: #dc2626; font-weight: bold;">🎯 ${task.name}</h4>
@@ -267,17 +267,17 @@ const initializeGantt = () => {
           </div>
         `;
       },
-      on_click: (task: GanttTask) => {
+      on_click: (task: Gantt.Task) => {
         if (!task.custom_class?.includes('placeholder')) {
-          const weight = getTaskWeight(task.id);
+          const weight = getTaskWeight(task.id || '');
           console.log('点击关键任务:', task.name, '权重:', weight);
           alert(`关键任务: ${task.name}\n权重: ${weight.toFixed(2)} 天\n\n此任务在关键路径上，任何延期都会影响项目整体进度！`);
         }
       },
-      on_date_change: (task: GanttTask, start: string, end: string) => {
-        console.log('关键任务日期变更:', task.name, start, end);
+      on_date_change: (task: Gantt.Task, start: Date, end: Date) => {
+        console.log('关键任务日期变更:', task.name, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
       },
-      on_progress_change: (task: GanttTask, progress: number) => {
+      on_progress_change: (task: Gantt.Task, progress: number) => {
         console.log('关键任务进度变更:', task.name, progress);
       }
     });

@@ -66,6 +66,7 @@
 <script lang="ts">
 import { defineComponent, computed, onMounted, ref } from 'vue';
 import { useUserStore } from '@/stores/user';
+import { getWorkloadText } from '@/utils/helpers';
 import type { Task, User } from '@/types/index';
 
 export default defineComponent({

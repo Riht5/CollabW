@@ -29,13 +29,9 @@
               <span class="text-muted">工期:</span>
               <span>{{ project.estimated_duration || '未设置' }} 天</span>
             </div>
-            <div class="d-flex justify-between">
+              <div class="d-flex justify-between">
               <span class="text-muted">任务:</span>
               <span>{{ project.tasks?.length || 0 }} 个</span>
-            </div>
-            <div class="d-flex justify-between">
-              <span class="text-muted">成员:</span>
-              <span>{{ project.assigned_users?.length || 0 }} 人</span>
             </div>
           </div>
         </div>
@@ -56,6 +52,7 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { useRouter } from 'vue-router';
+import { getStatusText } from '@/utils/helpers';
 import type { Project } from '@/types/index';
 
 export default defineComponent({
@@ -70,18 +67,8 @@ export default defineComponent({
       default: false
     }
   },
-  emits: ['edit', 'delete'],
-  setup() {
+  emits: ['edit', 'delete'],  setup() {
     const router = useRouter();
-
-    const getStatusText = (status: string) => {
-      const statusMap: Record<string, string> = {
-        'pending': '待开始',
-        'in_progress': '进行中',
-        'completed': '已完成'
-      };
-      return statusMap[status] || status;
-    };
 
     const viewProject = (projectId: number) => {
       router.push(`/projects/${projectId}`);

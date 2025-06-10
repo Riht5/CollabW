@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
+import { API_PATHS } from '@/utils/constants';
 import type { Task, TaskCreate } from '@/types/index';
 
 export const useTaskStore = defineStore('task', () => {
@@ -12,7 +13,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get('/api/tasks/');
+      const response = await apiClient.get('/api/tasks/');
       tasks.value = response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch tasks';
@@ -25,7 +26,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get('/api/users/me/tasks');
+      const response = await apiClient.get('/api/users/me/tasks');
       tasks.value = response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch user tasks';
@@ -38,7 +39,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/tasks/${taskId}`);
+      const response = await apiClient.get(`/api/tasks/${taskId}`);
       return response.data as Task;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch task';
@@ -52,7 +53,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.post('/api/tasks/', task);
+      const response = await apiClient.post('/api/tasks/', task);
       await fetchTasks(); // 重新获取任务列表
       return response.data;
     } catch (err: any) {
@@ -67,7 +68,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.put(`/api/tasks/${taskId}`, updateData);
+      const response = await apiClient.put(`/api/tasks/${taskId}`, updateData);
       
       // 更新本地状态中的任务
       const index = tasks.value.findIndex(task => task.id === taskId);
@@ -88,7 +89,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      await axios.delete(`/api/tasks/${taskId}`);
+      await apiClient.delete(`/api/tasks/${taskId}`);
       await fetchTasks(); // 重新获取任务列表
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to delete task';
@@ -103,7 +104,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.post(`/api/tasks/${taskId}/assign`, userIds);
+      const response = await apiClient.post(`/api/tasks/${taskId}/assign`, userIds);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to assign users';
@@ -118,7 +119,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/tasks/${taskId}/users`);
+      const response = await apiClient.get(`/api/tasks/${taskId}/users`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch task members';
@@ -133,7 +134,7 @@ export const useTaskStore = defineStore('task', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.delete(`/api/tasks/${taskId}/unassign/${userId}`);
+      const response = await apiClient.delete(`/api/tasks/${taskId}/unassign/${userId}`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to unassign user';

@@ -48,7 +48,7 @@
                   :key="user.id" 
                   :value="user.id"
                 >
-                  {{ user.username }} ({{ getRoleText(user.role) }})
+                  {{ user.username }} ({{ getRoleTextDisplay(user.role) }})
                 </option>
               </select>
             </div>
@@ -86,6 +86,7 @@
 import { defineComponent, ref, reactive, onMounted } from 'vue';
 import { useTaskStore } from '@/stores/task';
 import { useUserStore } from '@/stores/user';
+import { getRoleText } from '@/utils/helpers';
 import type { Task } from '@/types/index';
 
 export default defineComponent({
@@ -110,17 +111,10 @@ export default defineComponent({
       workload: props.task.workload,
       finished: props.task.finished,
       head_id: props.task.head_id || undefined,
-    });
+    });    const availableUsers = userStore.users;
 
-    const availableUsers = userStore.users;
-
-    const getRoleText = (role: string) => {
-      const roleMap: Record<string, string> = {
-        'director': '总监',
-        'manager': '经理',
-        'user': '员工'
-      };
-      return roleMap[role] || role;
+    const getRoleTextDisplay = (role: string) => {
+      return getRoleText(role);
     };
 
     const updateTask = async () => {
@@ -177,10 +171,9 @@ export default defineComponent({
 
     return {
       form,
-      loading,
-      error,
+      loading,      error,
       availableUsers,
-      getRoleText,
+      getRoleTextDisplay,
       updateTask,
       deleteTask,
       closeModal,

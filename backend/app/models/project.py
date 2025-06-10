@@ -1,12 +1,7 @@
 from sqlalchemy import Column, Integer, Float, String, Enum, Date, DateTime, ForeignKey, Table
 from sqlalchemy.orm import relationship
 from ..db.base import Base
-import enum
-
-class ProjectStatus(enum.Enum):
-    pending = "pending"
-    in_progress = "in_progress"
-    completed = "completed"
+from ..core.constants import ProjectStatus
 
 project_dependencies = Table(
     "project_dependencies",

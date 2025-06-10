@@ -117,7 +117,7 @@
 import { defineComponent, ref, reactive, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
-import type { ProjectCreate, Project } from '@/types/index';
+import type { ProjectCreate, Project, ProjectStatus } from '@/types/index';
 
 export default defineComponent({
   name: 'ProjectCreateView',
@@ -132,7 +132,7 @@ export default defineComponent({
     const form = reactive<ProjectCreate>({
       name: '',
       description: '',
-      status: 'pending',
+      status: 'pending' as ProjectStatus,
       estimated_duration: undefined,
     });
 

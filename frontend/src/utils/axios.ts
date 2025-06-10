@@ -1,10 +1,19 @@
 import axios from 'axios';
-import { useAuthStore } from '@/stores/auth';
-import router from '@/router';
+import { ERROR_MESSAGES } from './constants';
+
+// 创建 axios 实例
+const apiClient = axios.create({
+  baseURL: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000',
+  timeout: 10000,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
 
 // 请求拦截器
-axios.interceptors.request.use(
+apiClient.interceptors.request.use(
   (config) => {
+    // 从 localStorage 获取 token
     const token = localStorage.getItem('token');
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
@@ -17,20 +26,41 @@ axios.interceptors.request.use(
 );
 
 // 响应拦截器
-axios.interceptors.response.use(
+apiClient.interceptors.response.use(
   (response) => {
     return response;
   },
   (error) => {
-    if (error.response?.status === 401) {
-      // Token过期或无效，清除登录状态
-      const authStore = useAuthStore();
-      authStore.logout();
-      // 跳转到登录页
-      router.push('/login');
+    // 统一错误处理
+    if (error.response) {
+      const { status } = error.response;
+      
+      switch (status) {
+        case 401:
+          // 未授权，清除 token 并跳转到登录页
+          localStorage.removeItem('token');
+          window.location.href = '/login';
+          error.message = ERROR_MESSAGES.UNAUTHORIZED;
+          break;
+        case 403:
+          error.message = ERROR_MESSAGES.FORBIDDEN;
+          break;
+        case 404:
+          error.message = ERROR_MESSAGES.NOT_FOUND;
+          break;
+        case 500:
+          error.message = ERROR_MESSAGES.SERVER_ERROR;
+          break;
+        default:
+          error.message = error.response.data?.detail || error.message;
+      }
+    } else if (error.request) {
+      // 网络错误
+      error.message = ERROR_MESSAGES.NETWORK_ERROR;
     }
+    
     return Promise.reject(error);
   }
 );
 
-export default axios;
+export default apiClient;

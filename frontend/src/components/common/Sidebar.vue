@@ -72,16 +72,17 @@
 <script lang="ts">
 import { defineComponent, computed } from 'vue';
 import { useAuthStore } from '@/stores/auth';
+import { PermissionChecker } from '@/utils/helpers';
 
 export default defineComponent({
   name: 'Sidebar',
   setup() {
     const authStore = useAuthStore();
-    const role = computed(() => authStore.user?.role);
+    const userRole = computed(() => authStore.user?.role);
 
-    const isDirector = computed(() => role.value === 'director');
-    const isManager  = computed(() => role.value === 'manager');
-    const isUser     = computed(() => role.value === 'user');
+    const isDirector = computed(() => PermissionChecker.isDirector(userRole.value));
+    const isManager = computed(() => PermissionChecker.isManager(userRole.value));
+    const isUser = computed(() => PermissionChecker.isUser(userRole.value));
 
     return {
       isDirector,

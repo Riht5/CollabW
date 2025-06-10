@@ -1,18 +1,18 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
+import { API_PATHS } from '@/utils/constants';
 import type { Project, ProjectCreate, Task, BurnDownProject} from '@/types/index';
 
 export const useProjectStore = defineStore('project', () => {
   const projects = ref<Project[]>([]);
   const loading = ref(false);
   const error = ref<string | null>(null);
-
   const fetchProjects = async () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get('/api/projects/');
+      const response = await apiClient.get(API_PATHS.PROJECTS.LIST);
       projects.value = response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch projects';
@@ -25,7 +25,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/projects/${projectId}`);
+      const response = await apiClient.get(`/api/projects/${projectId}`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch project';
@@ -39,7 +39,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/projects/${id}/burn-down/`);
+      const response = await apiClient.get(`/api/projects/${id}/burn-down/`);
       return response.data as BurnDownProject;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch burn down chart data';
@@ -53,7 +53,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.post('/api/projects/', project);
+      const response = await apiClient.post('/api/projects/', project);
       await fetchProjects(); // 重新获取项目列表
       return response.data;
     } catch (err: any) {
@@ -68,7 +68,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.put(`/api/projects/${projectId}`, project);
+      const response = await apiClient.put(`/api/projects/${projectId}`, project);
       await fetchProjects();
       return response.data;
     } catch (err: any) {
@@ -83,7 +83,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      await axios.delete(`/api/projects/${projectId}`);
+      await apiClient.delete(`/api/projects/${projectId}`);
       await fetchProjects();
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to delete project';
@@ -97,7 +97,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.post(`/api/projects/${projectId}/dependencies/`, {
+      const response = await apiClient.post(`/api/projects/${projectId}/dependencies/`, {
         depends_on_ids: dependsOnIds
       });
       return response.data;
@@ -113,7 +113,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.post(`/api/projects/${projectId}/assign-users/`, {
+      const response = await apiClient.post(`/api/projects/${projectId}/assign-users/`, {
         user_ids: userIds
       });
       return response.data;
@@ -129,7 +129,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.delete(`/api/projects/${projectId}/remove-user/${userId}`);
+      const response = await apiClient.delete(`/api/projects/${projectId}/remove-user/${userId}`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to remove user from project';
@@ -143,7 +143,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/projects/${projectId}/tasks`);
+      const response = await apiClient.get(`/api/projects/${projectId}/tasks`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch project tasks';
@@ -157,7 +157,7 @@ export const useProjectStore = defineStore('project', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/projects/${projectId}/members`);
+      const response = await apiClient.get(`/api/projects/${projectId}/members`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch project members';

@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
+import { API_PATHS } from '@/utils/constants';
 import type { GanttTask } from '@/types/index';
 
 export const useGanttStore = defineStore('gantt', () => {
@@ -18,7 +19,7 @@ export const useGanttStore = defineStore('gantt', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get('/api/gantt/project-data');
+      const response = await apiClient.get('/api/gantt/project-data');
       ganttAllData.value = response.data.map((project: any) => ({
         id: `project_${project.id}`,
         name: project.name,
@@ -41,7 +42,7 @@ export const useGanttStore = defineStore('gantt', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get('/api/gantt/critical-path');
+      const response = await apiClient.get('/api/gantt/critical-path');
       criticalPathMeta.value = response.data;
       if (criticalPathMeta.value && ganttAllData.value.length) {
         const { critical_path } = criticalPathMeta.value;

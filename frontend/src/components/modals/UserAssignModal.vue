@@ -15,9 +15,8 @@
               <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
               <div class="user-info">
                 <span class="user-name">{{ user.username }}</span>
-                <span class="user-email">{{ user.email }}</span>
-                <div class="user-badges">
-                  <span class="user-role" :class="user.role">{{ getRoleText(user.role) }}</span>
+                <span class="user-email">{{ user.email }}</span>                <div class="user-badges">
+                  <span class="user-role" :class="user.role">{{ getRoleTextDisplay(user.role) }}</span>
                   <span v-if="isTaskHead(user)" class="head-badge">负责人</span>
                 </div>
               </div>
@@ -47,11 +46,10 @@
                 class="user-item"
                 @click="addAssignee(user)"
               >
-                <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>
-                <div class="user-info">
+                <div class="user-avatar">{{ user.username.charAt(0).toUpperCase() }}</div>                <div class="user-info">
                   <span class="user-name">{{ user.username }}</span>
                   <span class="user-email">{{ user.email }}</span>
-                  <span class="user-role" :class="user.role">{{ getRoleText(user.role) }}</span>
+                  <span class="user-role" :class="user.role">{{ getRoleTextDisplay(user.role) }}</span>
                 </div>
                 <button class="add-btn" title="添加">+</button>
               </div>
@@ -74,6 +72,7 @@
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useTaskStore } from '@/stores/task';
 import { useUserStore } from '@/stores/user';
+import { getRoleText } from '@/utils/helpers';
 import type { User, Task } from '@/types/index';
 
 export default defineComponent({
@@ -144,15 +143,8 @@ export default defineComponent({
         (user.username.toLowerCase().includes(query) || 
          user.email.toLowerCase().includes(query))
       );
-    });
-
-    const getRoleText = (role: string) => {
-      const roleMap: Record<string, string> = {
-        'director': '总监',
-        'manager': '经理', 
-        'user': '员工'
-      };
-      return roleMap[role] || role;
+    });    const getRoleTextDisplay = (role: string) => {
+      return getRoleText(role);
     };
 
     const isTaskHead = (user: User) => {
@@ -214,9 +206,8 @@ export default defineComponent({
       loading,
       currentAssignees,
       setAsHead,
-      availableUsers,
-      filteredUsers,
-      getRoleText,
+      availableUsers,      filteredUsers,
+      getRoleTextDisplay,
       isTaskHead,
       addAssignee,
       removeAssignee,

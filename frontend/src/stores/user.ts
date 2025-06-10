@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
+import { API_PATHS } from '@/utils/constants';
 import type { User } from '@/types/index';
 
 export const useUserStore = defineStore('user', () => {
@@ -13,8 +14,7 @@ export const useUserStore = defineStore('user', () => {
   const fetchUsers = async () => {
     loading.value = true;
     error.value = null;
-    try {
-      const response = await axios.get('/api/users/');
+    try {      const response = await apiClient.get(API_PATHS.USERS.LIST);
       users.value = response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch users';
@@ -27,7 +27,7 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get('/api/auth/me');
+      const response = await apiClient.get(API_PATHS.AUTH.ME);
       currentUser.value = response.data;
       return response.data;
     } catch (err: any) {
@@ -44,7 +44,7 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/users/${userId}`);
+      const response = await apiClient.get(`/api/users/${userId}`);
       return response.data as User;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch user';
@@ -57,8 +57,7 @@ export const useUserStore = defineStore('user', () => {
   const fetchOutstandingUsers = async () => {
     loading.value = true;
     error.value = null;
-    try {
-      const response = await axios.get('/api/users/outstanding');
+    try {      const response = await apiClient.get(API_PATHS.USERS.OUTSTANDING);
       outstandingUsers.value = response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch outstanding users';
@@ -71,7 +70,7 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true;
     error.value = null;
     try {
-      await axios.post('/api/users/calculate-performance');
+      await apiClient.post(API_PATHS.USERS.CALCULATE_PERFORMANCE);
       // 重新获取用户列表和优秀员工列表
       await Promise.all([fetchUsers(), fetchOutstandingUsers()]);
     } catch (err: any) {
@@ -86,7 +85,7 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/users/${userId}/task`);
+      const response = await apiClient.get(`/api/users/${userId}/task`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch user task';
@@ -100,7 +99,7 @@ export const useUserStore = defineStore('user', () => {
     loading.value = true;
     error.value = null;
     try {
-      const response = await axios.get(`/api/users/${userId}/headed-task`);
+      const response = await apiClient.get(`/api/users/${userId}/headed-task`);
       return response.data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch user headed task';

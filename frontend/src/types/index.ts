@@ -1,8 +1,10 @@
+import { UserRole, ProjectStatus, TaskWorkload, RiskLevel } from '@/utils/constants';
+
 export interface Project {
   id: number;
   name: string;
   description?: string;
-  status: 'pending' | 'in_progress' | 'completed';
+  status: ProjectStatus;
   estimated_duration?: number;
   start_time?: string;
   end_time?: string;
@@ -14,7 +16,7 @@ export interface Task {
   id: number;
   name: string;
   description?: string;
-  workload: 'light' | 'medium' | 'heavy';
+  workload: TaskWorkload;
   finished: boolean;
   project_id: number;
   head_id?: number;
@@ -24,7 +26,7 @@ export interface User {
   id: number;
   username: string;
   email: string;
-  role: 'director' | 'manager' | 'user';
+  role: UserRole;
   profile?: string;
   performance?: number;
   outstanding?: boolean;
@@ -34,7 +36,7 @@ export interface User {
 export interface ProjectCreate {
   name: string;
   description?: string;
-  status?: 'pending' | 'in_progress' | 'completed';
+  status?: ProjectStatus;
   estimated_duration?: number;
   start_time?: string;
   end_time?: string;
@@ -43,7 +45,7 @@ export interface ProjectCreate {
 export interface TaskCreate {
   name: string;
   description?: string;
-  workload: 'light' | 'medium' | 'heavy';
+  workload: TaskWorkload;
   finished: boolean;
   project_id: number;
   head_id?: number;
@@ -61,7 +63,7 @@ export interface Register {
   confirm_password: string;
   profile?: string;
   register_key: string;
-  role?: 'director' | 'manager' | 'user';
+  role?: UserRole;
 }
 
 export interface AuthResponse {
@@ -100,10 +102,5 @@ export interface BurnDownProject {
   risk_level: RiskLevel;
 }
 
-export enum RiskLevel {
-  NONE = "NONE",
-  LOW = "LOW",
-  MEDIUM = "MEDIUM",
-  HIGH = "HIGH",
-  CRITICAL = "CRITICAL",
-}
+// 导出枚举
+export { UserRole, ProjectStatus, TaskWorkload, RiskLevel };

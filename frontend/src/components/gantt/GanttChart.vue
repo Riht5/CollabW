@@ -59,17 +59,20 @@ const ganttStore = useGanttStore();
 const gantt = ref<Gantt | null>(null);
 const ganttContainer = ref<HTMLElement | null>(null);
 const wrapperRef = ref<HTMLElement | null>(null);
-const currentViewMode = ref<string>('Day'); // 默认 Day
+const currentViewMode = ref<Gantt.viewMode>('Day'); // 默认 Day
 const showViewModeDropdown = ref<boolean>(false);
-const viewModes: string[] = ['Day', 'Week', 'Month', 'Year'];
+const viewModes: Gantt.viewMode[] = ['Day', 'Week', 'Month', 'Year'];
 
 // 视图模式文本映射
-const getViewModeText = (mode: string): string => {
-  const modeMap: Record<string, string> = {
+const getViewModeText = (mode: Gantt.viewMode): string => {
+  const modeMap: Record<Gantt.viewMode, string> = {
     'Day': '日视图',
     'Week': '周视图', 
     'Month': '月视图',
-    'Year': '年视图'
+    'Year': '年视图',
+    'Hour': '时视图',
+    'Quarter Day': '四分之一日视图',
+    'Half Day': '半日视图'
   };
   return modeMap[mode] || mode;
 };
@@ -117,8 +120,15 @@ const getTimelineRange = () => {
 
 const scrollToToday = () => {
   if (gantt.value) {
-    gantt.value.scroll_current();
-    console.log('滚动至今天');
+    // 使用 change_view_mode 的 maintain_scroll 选项来滚动到今天
+    // 或者重新初始化甘特图
+    try {
+      // 重新初始化甘特图会自动滚动到设定的日期
+      initializeGantt();
+      console.log('滚动至今天');
+    } catch (err) {
+      console.error('滚动失败:', err);
+    }
   }
 };
 
@@ -126,7 +136,7 @@ const toggleViewModeDropdown = () => {
   showViewModeDropdown.value = !showViewModeDropdown.value;
 };
 
-const changeViewMode = (mode: string) => {
+const changeViewMode = (mode: Gantt.viewMode) => {
   if (!ganttContainer.value || !ganttStore.ganttAllData.length) {
     console.warn('甘特图容器或数据未就绪');
     return;
@@ -144,11 +154,11 @@ const changeViewMode = (mode: string) => {
       column_width: mode === 'Day' ? 30 : mode === 'Week' ? 50 : mode === 'Month' ? 100 : 150,
       scroll_to: startDate,
       language: 'zh-cn',
-      custom_popup_html: (task: GanttTask) => {
+      popup: (task: Gantt.Task) => {
         if (task.custom_class?.includes('placeholder')) return '';
         const startDate = new Date(task.start).toLocaleDateString('zh-CN');
-        const endDate = new Date(task.end).toLocaleDateString('zh-CN');
-        const duration = Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24));
+        const endDate = task.end ? new Date(task.end).toLocaleDateString('zh-CN') : '';
+        const duration = task.end ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) : 0;
         return `
           <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
             <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name}</h4>
@@ -159,15 +169,15 @@ const changeViewMode = (mode: string) => {
           </div>
         `;
       },
-      on_click: (task: GanttTask) => {
+      on_click: (task: Gantt.Task) => {
         if (!task.custom_class?.includes('placeholder')) {
           console.log('点击任务:', task);
         }
       },
-      on_date_change: (task: GanttTask, start: string, end: string) => {
-        console.log('日期变更:', task.name, start, end);
+      on_date_change: (task: Gantt.Task, start: Date, end: Date) => {
+        console.log('日期变更:', task.name, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
       },
-      on_progress_change: (task: GanttTask, progress: number) => {
+      on_progress_change: (task: Gantt.Task, progress: number) => {
         console.log('进度变更:', task.name, progress);
       }
     });
@@ -219,11 +229,11 @@ const initializeGantt = () => {
       scroll_to: startDate,
       language: 'zh-cn',
       infinite_padding: false, // 限制无限扩展
-      custom_popup_html: (task: GanttTask) => {
+      popup: (task: Gantt.Task) => {
         if (task.custom_class?.includes('placeholder')) return '';
         const startDate = new Date(task.start).toLocaleDateString('zh-CN');
-        const endDate = new Date(task.end).toLocaleDateString('zh-CN');
-        const duration = Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24));
+        const endDate = task.end ? new Date(task.end).toLocaleDateString('zh-CN') : '';
+        const duration = task.end ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) : 0;
         return `
           <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
             <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name}</h4>
@@ -234,15 +244,15 @@ const initializeGantt = () => {
           </div>
         `;
       },
-      on_click: (task: GanttTask) => {
+      on_click: (task: Gantt.Task) => {
         if (!task.custom_class?.includes('placeholder')) {
           console.log('点击任务:', task);
         }
       },
-      on_date_change: (task: GanttTask, start: string, end: string) => {
-        console.log('日期变更:', task.name, start, end);
+      on_date_change: (task: Gantt.Task, start: Date, end: Date) => {
+        console.log('日期变更:', task.name, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
       },
-      on_progress_change: (task: GanttTask, progress: number) => {
+      on_progress_change: (task: Gantt.Task, progress: number) => {
         console.log('进度变更:', task.name, progress);
       }
     });

@@ -1,13 +1,11 @@
 <template>
-  <div class="performance-view">
+  <div class="performance-view" style="margin-top: 20px;">
     <div class="performance-header">
       <h1>绩效看板</h1>
       <button @click="calculatePerformance" class="btn btn-primary" :disabled="calculating">
         {{ calculating ? '计算中...' : '重新计算绩效' }}
       </button>
-    </div>
-
-    <div class="performance-stats">
+    </div>    <div class="performance-stats">
       <div class="stat-card">
         <h3>总员工数</h3>
         <div class="stat-number">{{ allUsers.length }}</div>
@@ -27,24 +25,6 @@
     </div>
 
     <div class="performance-content">
-      <div class="section">
-        <h2>优秀员工榜</h2>
-        <div v-if="outstandingUsers.length" class="outstanding-list">
-          <div v-for="(user, index) in outstandingUsers" :key="user.id" class="outstanding-item">
-            <div class="rank">{{ index + 1 }}</div>
-            <div class="user-info">
-              <h4>{{ user.username }}</h4>
-              <p>{{ user.email }}</p>
-              <span class="role-badge" :class="user.role">{{ getRoleText(user.role) }}</span>
-            </div>
-            <div class="performance-score">
-              {{ user.performance?.toFixed(1) || '0.0' }}
-            </div>
-          </div>
-        </div>
-        <p v-else class="empty-text">暂无优秀员工数据</p>
-      </div>
-
       <div class="section">
         <h2>绩效排行榜</h2>
         <div class="performance-table">
@@ -85,8 +65,7 @@ import { useUserStore } from '@/stores/user';
 
 export default defineComponent({
   name: 'PerformanceView',
-  setup() {
-    const userStore = useUserStore();
+  setup() {    const userStore = useUserStore();
 
     const allUsers = computed(() => userStore.users);
     const outstandingUsers = computed(() => userStore.outstandingUsers);
@@ -122,9 +101,7 @@ export default defineComponent({
       } catch (err) {
         console.error('计算绩效失败:', err);
       }
-    };
-
-    onMounted(async () => {
+    };    onMounted(async () => {
       await Promise.all([
         userStore.fetchUsers(),
         userStore.fetchOutstandingUsers(),
@@ -161,6 +138,7 @@ export default defineComponent({
 }
 
 .performance-header h1 {
+  font-size: 32px;
   margin: 0;
   color: #2c3e50;
 }
@@ -198,9 +176,7 @@ export default defineComponent({
 }
 
 .performance-content {
-  display: grid;
-  grid-template-columns: 1fr 2fr;
-  gap: 30px;
+  display: block;
 }
 
 .section {
@@ -218,57 +194,9 @@ export default defineComponent({
   color: #2c3e50;
 }
 
-.outstanding-list {
-  padding: 20px;
-}
-
-.outstanding-item {
-  display: flex;
-  align-items: center;
-  padding: 15px;
-  margin-bottom: 10px;
-  background: #f8f9fa;
-  border-radius: 6px;
-  border-left: 4px solid #f39c12;
-}
-
-.rank {
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f39c12;
-  color: white;
-  border-radius: 50%;
-  font-weight: bold;
-  margin-right: 15px;
-}
-
-.user-info {
-  flex: 1;
-}
-
-.user-info h4 {
-  margin: 0 0 5px 0;
-  color: #2c3e50;
-}
-
-.user-info p {
-  margin: 0 0 8px 0;
-  color: #666;
-  font-size: 14px;
-}
-
-.performance-score {
-  font-size: 24px;
-  font-weight: bold;
-  color: #f39c12;
-}
-
 .performance-table {
   display: grid;
-  grid-template-columns: 80px 120px 180px 1fr 120px 100px;
+  grid-template-columns: 100px 140px 200px 2fr 120px 120px;
   gap: 0;
   border-radius: 8px;
   overflow: hidden;
@@ -388,7 +316,7 @@ export default defineComponent({
 .name-cell {
   font-weight: 500;
   color: #2c3e50;
-  justify-content: flex-start;
+  justify-content: center;
 }
 
 .email-cell {
@@ -403,7 +331,7 @@ export default defineComponent({
   font-size: 13px;
   justify-content: flex-start;
   line-height: 1.4;
-  max-width: 200px;
+  max-width: none;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -503,10 +431,6 @@ export default defineComponent({
 }
 
 @media (max-width: 768px) {
-  .performance-content {
-    grid-template-columns: 1fr;
-  }
-  
   .performance-header {
     flex-direction: column;
     gap: 15px;

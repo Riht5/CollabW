@@ -1,6 +1,7 @@
 import { defineStore } from 'pinia';
 import { ref } from 'vue';
-import axios from 'axios';
+import apiClient from '@/utils/axios';
+import { API_PATHS } from '@/utils/constants';
 import type { Register, LoginCredentials, User } from '@/types/index';
 
 export const useAuthStore = defineStore('auth', () => {
@@ -13,7 +14,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (storedToken) {
       token.value = storedToken;
       // 设置axios默认header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
       
       // 尝试获取当前用户信息
       try {
@@ -28,15 +29,14 @@ export const useAuthStore = defineStore('auth', () => {
 
   const login = async (credentials: LoginCredentials) => {
     try {
-      const response = await axios.post('/api/auth/login', credentials);
+      const response = await apiClient.post('/api/auth/login', credentials);
       token.value = response.data.access_token;
       localStorage.setItem('token', token.value);
-      
       // 设置axios默认header
-      axios.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
+      apiClient.defaults.headers.common['Authorization'] = `Bearer ${token.value}`;
 
       // 登录后获取用户信息
-      const userResp = await axios.get('/api/auth/me');
+      const userResp = await apiClient.get('/api/auth/me');
       user.value = userResp.data;
       
       return response.data;
@@ -47,10 +47,9 @@ export const useAuthStore = defineStore('auth', () => {
   };
 
   const logout = () => {
-    user.value = null;
-    token.value = '';
+    user.value = null;    token.value = '';
     localStorage.removeItem('token');
-    delete axios.defaults.headers.common['Authorization'];
+    delete apiClient.defaults.headers.common['Authorization'];
   };
 
   const isAuthenticated = () => {
@@ -59,7 +58,7 @@ export const useAuthStore = defineStore('auth', () => {
 
   const register = async (userData: Register) => {
     try {
-      const response = await axios.post('/api/auth/register', userData);
+      const response = await apiClient.post('/api/auth/register', userData);
       return response.data;
     } catch (error) {
       console.error('Registration failed:', error);
@@ -72,7 +71,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!token.value) return null;
     
     try {
-      const response = await axios.get('/api/auth/me');
+      const response = await apiClient.get('/api/auth/me');
       user.value = response.data;
       return user.value;
     } catch (error) {
@@ -97,7 +96,7 @@ export const useAuthStore = defineStore('auth', () => {
 
       console.log('Sending update request:', requestData); // 调试日志
 
-      const response = await axios.put('/api/auth/update-profile', requestData);
+      const response = await apiClient.put('/api/auth/update-profile', requestData);
       
       if (response.data.success) {
         // Update the user data in store
@@ -133,7 +132,7 @@ export const useAuthStore = defineStore('auth', () => {
         new_password: passwordData.newPassword
       };
       
-      const response = await axios.put('/api/auth/change-password', backendData);
+      const response = await apiClient.put('/api/auth/change-password', backendData);
       
       if (response.data.success) {
         return response.data;

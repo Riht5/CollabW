@@ -1,27 +1,127 @@
+# CollabW 项目协作管理平台 Docker Compose 配置
+
 services:
+  # ============================================
+  # 后端服务 (FastAPI)
+  # ============================================
   backend:
+    container_name: collabw-backend
     build:
       context: ./backend
       dockerfile: Dockerfile
-    volumes:
-      - ./backend:/app
-      - ./db_data:/app/db
+    restart: unless-stopped
+    
+    # 端口映射: 主机端口:容器端口
     ports:
       - "8000:8000"
+    
+    # 数据卷挂载
+    volumes:
+      # 开发环境热重载: 挂载源代码目录
+      - ./backend:/app
+      # 数据库持久化: 挂载数据库目录到命名卷
+      - db_data:/app/db
+      # 日志目录 (可选)
+      - ./logs/backend:/app/logs
+    
+    # 环境变量配置
     environment:
+      # 数据库配置
       - DATABASE_URL=sqlite:///./app/db/database.db
+      # Python运行配置
       - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      # FastAPI配置
+      - APP_ENV=development
+      - DEBUG=true
+      # JWT密钥 (生产环境应使用更安全的密钥)
+      - SECRET_KEY=collabw-secret-key-change-in-production
+      # CORS配置
+      - CORS_ORIGINS=http://localhost:3000,http://127.0.0.1:3000
+    
+    # 网络配置
+    networks:
+      - collabw-network
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+    
+    # 依赖服务 (如果使用外部数据库可在此配置)
+    # depends_on:
+    #   - database
 
+  # ============================================
+  # 前端服务 (Vue 3 + Vite)
+  # ============================================
   frontend:
+    container_name: collabw-frontend
     build:
       context: ./frontend
       dockerfile: Dockerfile
-    volumes:
-      - ./frontend:/app
+    restart: unless-stopped
+    
+    # 端口映射
     ports:
       - "3000:3000"
+    
+    # 数据卷挂载
+    volumes:
+      # 开发环境热重载: 挂载源代码目录
+      - ./frontend:/app
+      # 排除node_modules以避免权限问题
+      - /app/node_modules
+      # 日志目录 (可选)
+      - ./logs/frontend:/app/logs
+    
+    # 环境变量配置
     environment:
+      # Vite开发服务器配置
+      - NODE_ENV=development
       - VITE_API_BASE_URL=http://localhost:8000
+      # 如果需要代理可以配置
+      - VITE_PROXY_TARGET=http://backend:8000
+      # 开发服务器配置
+      - CHOKIDAR_USEPOLLING=true
+    
+    # 网络配置
+    networks:
+      - collabw-network
+    
+    # 服务依赖: 前端依赖后端服务
+    depends_on:
+      backend:
+        condition: service_healthy
+    
+    # 健康检查
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:3000/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
 
+# ============================================
+# 网络配置
+# ============================================
+networks:
+  collabw-network:
+    driver: bridge
+    name: collabw_network
+
+# ============================================
+# 数据卷配置
+# ============================================
 volumes:
+  # SQLite数据库数据持久化
   db_data:
+    driver: local
+    name: collabw_db_data
+  
+  # 日志目录 (主机目录挂载)
+  # logs:
+  #   driver: local

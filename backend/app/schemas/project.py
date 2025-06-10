@@ -1,13 +1,8 @@
 from pydantic import BaseModel
 from typing import Optional, List
 from datetime import date, datetime
-import enum
+from ..core.constants import ProjectStatus
 from .task import Task
-
-class ProjectStatus(str, enum.Enum):
-    pending = "pending"
-    in_progress = "in_progress"
-    completed = "completed"
 
 class ProjectBase(BaseModel):
     """项目基础字段"""

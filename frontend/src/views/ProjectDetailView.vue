@@ -158,6 +158,7 @@ import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
 import { useTaskStore } from '@/stores/task';
 import { useAuthStore } from '@/stores/auth';
+import { getStatusText, getRoleText, getRiskLevelText } from '@/utils/helpers';
 import TaskList from '@/components/tasks/TaskList.vue';
 import BurnoutDiagram from '@/components/tasks/BurnoutDiagram.vue';
 import UserAssignModal from '@/components/modals/UserAssignModal.vue';
@@ -189,37 +190,11 @@ export default defineComponent({
     const error = ref('');
     const showAssignModal = ref(false);
     const showTaskModal = ref(false);
-    const showEditTaskModal = ref(false);
-    const editingTask = ref<Task | null>(null);
+    const showEditTaskModal = ref(false);    const editingTask = ref<Task | null>(null);
     const selectedTask = ref<Task | null>(null);
 
-    const getStatusText = (status: string) => {
-      const statusMap: Record<string, string> = {
-        'pending': '待开始',
-        'in_progress': '进行中',
-        'completed': '已完成'
-      };
-      return statusMap[status] || status;
-    };
-
-    const getRoleText = (role: string) => {
-      const roleMap: Record<string, string> = {
-        'director': '总监',
-        'manager': '经理',
-        'user': '员工'
-      };
-      return roleMap[role] || role;
-    };
-
     const RiskLevelText = (level: RiskLevel) => {
-      const levelMap: Record<RiskLevel, string> = {
-        [RiskLevel.NONE]: "无延期风险，继续保持",
-        [RiskLevel.LOW]: "低风险状态，请关注趋势",
-        [RiskLevel.MEDIUM]: "中度风险，建议优化计划",
-        [RiskLevel.HIGH]: "高风险，需立即干预",
-        [RiskLevel.CRITICAL]: "严重风险，项目可能延期"
-      };
-      return levelMap[level] || level;
+      return getRiskLevelText(level);
     };
 
     const formatDate = (dateStr?: string) => {
