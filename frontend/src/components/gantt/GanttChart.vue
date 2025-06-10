@@ -156,16 +156,27 @@ const changeViewMode = (mode: Gantt.viewMode) => {
       language: 'zh-cn',
       popup: (task: Gantt.Task) => {
         if (task.custom_class?.includes('placeholder')) return '';
-        const startDate = new Date(task.start).toLocaleDateString('zh-CN');
-        const endDate = task.end ? new Date(task.end).toLocaleDateString('zh-CN') : '';
-        const duration = task.end ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+        // 使用 _start 和 _end，如果它们存在
+        const startDate = task._start
+          ? task._start.toLocaleDateString('zh-CN')
+          : new Date(task.start).toLocaleDateString('zh-CN');
+        const endDate = task._end
+          ? task._end.toLocaleDateString('zh-CN')
+          : task.end
+            ? new Date(task.end).toLocaleDateString('zh-CN')
+            : '';
+        const duration = task._end && task._start
+          ? Math.ceil((task._end.getTime() - task._start.getTime()) / (1000 * 60 * 60 * 24))
+          : task.end && task.start
+            ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24))
+            : 0;
         return `
           <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name}</h4>
+            <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name || '未知任务'}</h4>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">开始: ${startDate}</p>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">结束: ${endDate}</p>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">工期: ${duration} 天</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${task.progress}%</p>
+            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${task.progress !== undefined ? task.progress : 0}%</p>
           </div>
         `;
       },
@@ -229,18 +240,33 @@ const initializeGantt = () => {
       scroll_to: startDate,
       language: 'zh-cn',
       infinite_padding: false, // 限制无限扩展
-      popup: (task: Gantt.Task) => {
-        if (task.custom_class?.includes('placeholder')) return '';
-        const startDate = new Date(task.start).toLocaleDateString('zh-CN');
-        const endDate = task.end ? new Date(task.end).toLocaleDateString('zh-CN') : '';
-        const duration = task.end ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24)) : 0;
+      popup: (task: any) => {
+        // 调试 task 对象的结构
+        if (task.task?.custom_class?.includes('placeholder')) return '';
+        // 从 task.task 中获取原始任务数据
+        const taskData = task.task || {};
+        const startDate = taskData._start
+          ? taskData._start.toLocaleDateString('zh-CN')
+          : taskData.start
+            ? new Date(taskData.start).toLocaleDateString('zh-CN')
+            : '未知日期';
+        const endDate = taskData._end
+          ? taskData._end.toLocaleDateString('zh-CN')
+          : taskData.end
+            ? new Date(taskData.end).toLocaleDateString('zh-CN')
+            : '未知日期';
+        const duration = taskData._end && taskData._start
+          ? Math.ceil((taskData._end.getTime() - taskData._start.getTime()) / (1000 * 60 * 60 * 24))
+          : taskData.end && taskData.start
+            ? Math.ceil((new Date(taskData.end).getTime() - new Date(taskData.start).getTime()) / (1000 * 60 * 60 * 24))
+            : 0;
         return `
           <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name}</h4>
+            <h4 style="margin: 0 0 8px 0; color: #1f2937;">${taskData.name || '未知任务'}</h4>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">开始: ${startDate}</p>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">结束: ${endDate}</p>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">工期: ${duration} 天</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${task.progress}%</p>
+            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${taskData.progress !== undefined ? taskData.progress : 0}%</p>
           </div>
         `;
       },
