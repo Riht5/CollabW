@@ -52,6 +52,12 @@ const routes = [
     path: '/personal',
     name: 'PersonalTable',
     component: () => import('@/views/PersonalView.vue')
+  },
+  {
+    path: '/my-project',
+    name: 'MyProjects',
+    component: () => import('@/views/MyProjectView.vue'),
+    meta: { requiresAuth: true, roles: ['user'] }
   }
 ];
 

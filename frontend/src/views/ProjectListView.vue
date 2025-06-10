@@ -3,7 +3,12 @@
     <div class="page-header">
       <h1>项目管理</h1>
       <div class="header-actions">
-        <router-link to="/projects/create" class="btn btn-primary">
+        <!-- 仅 Manager 可见创建项目按钮 -->
+        <router-link 
+          v-if="isManager"
+          to="/projects/create" 
+          class="btn btn-primary"
+        >
           <i class="icon">➕</i> 创建项目
         </router-link>
       </div>
@@ -39,7 +44,7 @@
 
     <ProjectList 
       :projects="filteredProjects" 
-      :show-actions="true"
+      :show-actions="isManager"
       @edit="editProject"
       @delete="deleteProject"
     />
@@ -50,6 +55,7 @@
 import { defineComponent, ref, computed, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
+import { useAuthStore } from '@/stores/auth';
 import ProjectList from '@/components/projects/ProjectList.vue';
 import type { Project } from '@/types/index';
 
@@ -61,9 +67,13 @@ export default defineComponent({
   setup() {
     const router = useRouter();
     const projectStore = useProjectStore();
+    const authStore = useAuthStore();
     
     const statusFilter = ref('');
     const searchQuery = ref('');
+
+    // 用户角色判断
+    const isManager = computed(() => authStore.user?.role === 'manager');
 
     const filteredProjects = computed(() => {
       let projects = projectStore.projects;
@@ -112,6 +122,7 @@ export default defineComponent({
       filterProjects,
       editProject,
       deleteProject,
+      isManager,
     };
   },
 });

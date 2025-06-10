@@ -49,22 +49,24 @@
         <h2>绩效排行榜</h2>
         <div class="performance-table">
           <div class="table-header">
-            <div>排名</div>
-            <div>姓名</div>
-            <div>邮箱</div>
-            <div>角色</div>
-            <div>绩效分数</div>
-            <div>状态</div>
+            <div class="rank-header">排名</div>
+            <div class="name-header">姓名</div>
+            <div class="email-header">邮箱</div>
+            <div class="profile-header">简介</div>
+            <div class="score-header">绩效分数</div>
+            <div class="status-header">状态</div>
           </div>
           <div v-for="(user, index) in sortedUsers" :key="user.id" class="table-row">
-            <div class="rank-cell">{{ index + 1 }}</div>
-            <div>{{ user.username }}</div>
-            <div>{{ user.email }}</div>
-            <div>
-              <span class="role-badge" :class="user.role">{{ getRoleText(user.role) }}</span>
+            <div class="rank-cell">
+              <span class="rank-badge">{{ index + 1 }}</span>
             </div>
-            <div class="score-cell">{{ user.performance?.toFixed(1) || '0.0' }}</div>
-            <div>
+            <div class="name-cell">{{ user.username }}</div>
+            <div class="email-cell">{{ user.email }}</div>
+            <div class="profile-cell">{{ user.profile || '暂无简介' }}</div>
+            <div class="score-cell">
+              <span class="score-badge">{{ user.performance?.toFixed(1) || '0.0' }}</span>
+            </div>
+            <div class="status-cell">
               <span v-if="user.outstanding" class="outstanding-badge">优秀</span>
               <span v-else class="normal-badge">普通</span>
             </div>
@@ -266,81 +268,199 @@ export default defineComponent({
 
 .performance-table {
   display: grid;
-  grid-template-columns: 60px 1fr 1fr 100px 100px 80px;
-  gap: 10px;
+  grid-template-columns: 80px 120px 180px 1fr 120px 100px;
+  gap: 0;
+  border-radius: 8px;
+  overflow: hidden;
+  border: 1px solid #e1e5e9;
 }
 
 .table-header {
   display: contents;
   font-weight: 500;
-  color: #666;
+  color: #2c3e50;
+  background: #f8f9fa;
 }
 
 .table-header > div {
-  padding: 15px 10px;
+  padding: 15px 12px;
   background: #f8f9fa;
-  border-bottom: 1px solid #eee;
+  border-bottom: 1px solid #dee2e6;
+  border-right: 1px solid #e9ecef;
+  font-size: 14px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.table-header > div:last-child {
+  border-right: none;
+}
+
+.rank-header,
+.score-header,
+.status-header {
+  justify-content: center;
+}
+
+.name-header,
+.email-header,
+.profile-header {
+  justify-content: flex-start;
 }
 
 .table-row {
   display: contents;
 }
 
+.table-row:nth-child(even) > div {
+  background: #fafbfc;
+}
+
+.table-row:nth-child(odd) > div {
+  background: #ffffff;
+}
+
+.table-row:hover > div {
+  background: #f0f4f7 !important;
+  transition: background-color 0.2s ease;
+}
+
 .table-row > div {
-  padding: 15px 10px;
-  border-bottom: 1px solid #f1f1f1;
+  padding: 14px 12px;
+  border-bottom: 1px solid #f1f3f5;
+  border-right: 1px solid #f1f3f5;
   display: flex;
   align-items: center;
+  font-size: 14px;
+  min-height: 55px;
+}
+
+.table-row > div:last-child {
+  border-right: none;
 }
 
 .rank-cell {
-  font-weight: bold;
-  color: #f39c12;
+  justify-content: center;
+}
+
+.rank-badge {
+  width: 32px;
+  height: 32px;
+  color: white;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 14px;
+}
+
+/* 前三名特殊样式 */
+.table-row:nth-child(2) .rank-badge { /* 第一名 */
+  background: #FFD700;
+  color: #B8860B;
+  box-shadow: 0 3px 8px rgba(255, 215, 0, 0.5);
+  font-size: 15px;
+}
+
+.table-row:nth-child(3) .rank-badge { /* 第二名 */
+  background: #C0C0C0;
+  color: #696969;
+  box-shadow: 0 3px 8px rgba(192, 192, 192, 0.5);
+  font-size: 15px;
+}
+
+.table-row:nth-child(4) .rank-badge { /* 第三名 */
+  background: #CD7F32;
+  color: #8B4513;
+  box-shadow: 0 3px 8px rgba(205, 127, 50, 0.5);
+  font-size: 15px;
+}
+
+.table-row:nth-child(n+5) .rank-badge { /* 第四名及以后 */
+  background: #95a5a6;
+}
+
+.name-cell {
+  font-weight: 500;
+  color: #2c3e50;
+  justify-content: flex-start;
+}
+
+.email-cell {
+  color: #6c757d;
+  font-size: 13px;
+  justify-content: flex-start;
+  word-break: break-all;
+}
+
+.profile-cell {
+  color: #6c757d;
+  font-size: 13px;
+  justify-content: flex-start;
+  line-height: 1.4;
+  max-width: 200px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .score-cell {
-  font-weight: bold;
+  justify-content: center;
+}
+
+.score-badge {
   color: #3498db;
+  font-weight: 600;
+  font-size: 14px;
 }
 
-.role-badge {
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
-}
-
-.role-badge.director {
-  background: #e74c3c;
-  color: white;
-}
-
-.role-badge.manager {
-  background: #3498db;
-  color: white;
-}
-
-.role-badge.user {
-  background: #95a5a6;
-  color: white;
+.status-cell {
+  justify-content: center;
 }
 
 .outstanding-badge {
-  background: #f39c12;
+  background: linear-gradient(135deg, #f39c12, #e67e22);
   color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.8px;
+  box-shadow: 0 4px 12px rgba(243, 156, 18, 0.5);
+  position: relative;
+  overflow: hidden;
+}
+
+.outstanding-badge::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+  animation: shine 2s infinite;
+}
+
+@keyframes shine {
+  0% { left: -100%; }
+  100% { left: 100%; }
 }
 
 .normal-badge {
-  background: #95a5a6;
-  color: white;
-  padding: 2px 8px;
-  border-radius: 12px;
-  font-size: 11px;
-  font-weight: 500;
+  background: #ecf0f1;
+  color: #7f8c8d;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid #bdc3c7;
 }
 
 .btn {
@@ -394,7 +514,11 @@ export default defineComponent({
   }
   
   .performance-table {
-    grid-template-columns: 40px 1fr 80px;
+    grid-template-columns: 60px 1fr 100px;
+    font-size: 12px;
+  }
+  
+  .table-header > div {
     font-size: 12px;
   }
   
@@ -403,6 +527,34 @@ export default defineComponent({
   .table-row > div:nth-child(3),
   .table-row > div:nth-child(4) {
     display: none;
+  }
+
+  .table-row > div {
+    min-height: 50px;
+    padding: 12px 10px;
+  }
+
+  .rank-badge {
+    width: 28px;
+    height: 28px;
+    font-size: 12px;
+  }
+
+  .table-row:nth-child(2) .rank-badge,
+  .table-row:nth-child(3) .rank-badge,
+  .table-row:nth-child(4) .rank-badge {
+    font-size: 13px;
+  }
+
+  .outstanding-badge,
+  .normal-badge {
+    padding: 6px 12px;
+    font-size: 11px;
+  }
+
+  .score-badge {
+    padding: 3px 8px;
+    font-size: 11px;
   }
 }
 </style>

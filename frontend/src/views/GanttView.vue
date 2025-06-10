@@ -4,7 +4,13 @@
     <div class="dashboard-header">
       <h1>多项目甘特图</h1>
       <div class="header-actions">
-        <button class="btn btn-secondary" @click="toggleView" :disabled="ganttStore.loading">
+        <!-- 仅 Manager 可见关键路径分析按钮 -->
+        <button 
+          v-if="isManager"
+          class="btn btn-secondary" 
+          @click="toggleView" 
+          :disabled="ganttStore.loading"
+        >
           {{ showCriticalPath ? '返回项目甘特图' : '计算关键路径' }}
           <i class="icon">{{ showCriticalPath ? '📊' : '🎯' }}</i>
         </button>
@@ -15,7 +21,7 @@
         <h2>项目总览</h2>
         <GanttChartTest />
       </div>
-      <div v-if="showCriticalPath" class="content-section">
+      <div v-if="showCriticalPath && isManager" class="content-section">
         <h2>关键路径</h2>
         <Suspense>
           <template #default>
@@ -35,12 +41,19 @@ import { ref, computed } from 'vue';
 import GanttChartTest from '../components/gantt/GanttChart.vue';
 import CriticalPathChart from '../components/gantt/CriticalPathChart.vue';
 import { useGanttStore } from '@/stores/gantt';
+import { useAuthStore } from '@/stores/auth';
 import { onMounted } from 'vue';
 
 const ganttStore = useGanttStore();
-const showCriticalPath = ref(false); // 控制显示模式，默认显示项目甘特图
+const authStore = useAuthStore();
+const showCriticalPath = ref(false);
+
+// 用户角色判断
+const isManager = computed(() => authStore.user?.role === 'manager');
 
 const toggleView = async () => {
+  if (!isManager.value) return; // Manager专属功能
+  
   if (showCriticalPath.value) {
     // 返回项目甘特图
     showCriticalPath.value = false;

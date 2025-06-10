@@ -2,14 +2,6 @@
   <div class="dashboard">
     <div class="dashboard-header">
       <h1>仪表盘</h1>
-      <div class="header-actions">
-        <router-link to="/projects/create" class="btn btn-primary">
-          <i class="icon">➕</i> 创建项目
-        </router-link>
-        <router-link to="/performance" class="btn btn-secondary">
-          <i class="icon">📊</i> 绩效看板
-        </router-link>
-      </div>
     </div>
 
     <div class="dashboard-stats">
@@ -59,6 +51,7 @@
 import { defineComponent, computed, onMounted } from 'vue';
 import { useProjectStore } from '@/stores/project';
 import { useTaskStore } from '@/stores/task';
+import { useAuthStore } from '@/stores/auth';
 import ProjectList from '@/components/projects/ProjectList.vue';
 
 export default defineComponent({
@@ -69,6 +62,7 @@ export default defineComponent({
   setup() {
     const projectStore = useProjectStore();
     const taskStore = useTaskStore();
+    const authStore = useAuthStore();
 
     const projects = computed(() => projectStore.projects);
     const tasks = computed(() => taskStore.tasks);
@@ -81,6 +75,12 @@ export default defineComponent({
       projects.value.filter(p => p.status === 'completed').length
     );
 
+    // 用户角色判断 - 参考Sidebar的实现
+    const isManager = computed(() => authStore.user?.role === 'manager');
+    const isDirectorOrManager = computed(() => 
+      ['director', 'manager'].includes(authStore.user?.role || '')
+    );
+
     onMounted(() => {
       projectStore.fetchProjects();
       taskStore.fetchTasks();
@@ -91,6 +91,8 @@ export default defineComponent({
       tasks,
       inProgressProjects,
       completedProjects,
+      isManager,
+      isDirectorOrManager,
     };
   },
 });

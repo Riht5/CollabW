@@ -1,30 +1,5 @@
 <template>
   <div class="burndown-container">
-    <!-- 数据统计卡片 -->
-    <div class="stats-cards" v-if="actualProgresses.length > 0">
-      <div class="stat-card">
-        <div class="stat-icon">📊</div>
-        <div class="stat-content">
-          <div class="stat-label">当前进度</div>
-          <div class="stat-value">{{ getCurrentProgress() }}%</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon">🎯</div>
-        <div class="stat-content">
-          <div class="stat-label">预期进度</div>
-          <div class="stat-value">{{ getExpectedProgress() }}%</div>
-        </div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon" :class="getProgressStatusIcon()">{{ getProgressStatusEmoji() }}</div>
-        <div class="stat-content">
-          <div class="stat-label">进度状态</div>
-          <div class="stat-value" :class="getProgressStatusClass()">{{ getProgressStatus() }}</div>
-        </div>
-      </div>
-    </div>
-
     <!-- 图表容器 -->
     <div ref="chart" class="chart"></div>
   </div>
@@ -50,56 +25,6 @@ export default defineComponent({
   setup(props) {
     const chart = ref<HTMLDivElement | null>(null)
     let myChart: echarts.ECharts | null = null
-
-    // 获取当前进度
-    const getCurrentProgress = () => {
-      if (props.actualProgresses.length === 0) return 0;
-      const latest = props.actualProgresses[props.actualProgresses.length - 1];
-      return Math.round(latest.progress * 100);
-    };
-
-    // 获取预期进度
-    const getExpectedProgress = () => {
-      if (props.idealProgresses.length === 0) return 0;
-      const latest = props.idealProgresses[props.idealProgresses.length - 1];
-      return Math.round(latest.progress * 100);
-    };
-
-    // 获取进度状态
-    const getProgressStatus = () => {
-      const current = getCurrentProgress();
-      const expected = getExpectedProgress();
-      const diff = current - expected;
-      
-      if (diff >= 10) return '超前';
-      if (diff >= 0) return '正常';
-      if (diff >= -10) return '略微延后';
-      return '严重延后';
-    };
-
-    const getProgressStatusClass = () => {
-      const status = getProgressStatus();
-      return {
-        '超前': 'status-ahead',
-        '正常': 'status-normal',
-        '略微延后': 'status-behind',
-        '严重延后': 'status-critical'
-      }[status] || 'status-normal';
-    };
-
-    const getProgressStatusEmoji = () => {
-      const status = getProgressStatus();
-      return {
-        '超前': '🚀',
-        '正常': '✅',
-        '略微延后': '⚠️',
-        '严重延后': '🚨'
-      }[status] || '✅';
-    };
-
-    const getProgressStatusIcon = () => {
-      return getProgressStatusClass();
-    };
 
     // 渲染燃尽图函数
     const renderChart = (data: ProjectProgress[], idealData: ProjectProgress[]) => {
@@ -324,13 +249,7 @@ export default defineComponent({
     });
 
     return {
-      chart,
-      getCurrentProgress,
-      getExpectedProgress,
-      getProgressStatus,
-      getProgressStatusClass,
-      getProgressStatusEmoji,
-      getProgressStatusIcon
+      chart
     };
   }
 });
@@ -341,61 +260,6 @@ export default defineComponent({
   width: 100%;
 }
 
-.stats-cards {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  margin-bottom: 1.5rem;
-}
-
-.stat-card {
-  display: flex;
-  align-items: center;
-  padding: 1rem;
-  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
-  border-radius: 12px;
-  border: 1px solid #dee2e6;
-  transition: all 0.3s ease;
-}
-
-.stat-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-}
-
-.stat-icon {
-  font-size: 2rem;
-  margin-right: 1rem;
-  width: 50px;
-  height: 50px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  background: white;
-}
-
-.stat-content {
-  flex: 1;
-}
-
-.stat-label {
-  font-size: 0.875rem;
-  color: #6c757d;
-  margin-bottom: 0.25rem;
-}
-
-.stat-value {
-  font-size: 1.5rem;
-  font-weight: bold;
-  color: #333;
-}
-
-.status-ahead { color: #27ae60; }
-.status-normal { color: #3498db; }
-.status-behind { color: #f39c12; }
-.status-critical { color: #e74c3c; }
-
 .chart {
   width: 100%;
   height: 450px;
@@ -405,10 +269,6 @@ export default defineComponent({
 }
 
 @media (max-width: 768px) {
-  .stats-cards {
-    grid-template-columns: 1fr;
-  }
-  
   .chart {
     height: 350px;
   }

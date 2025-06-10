@@ -1,25 +1,69 @@
 <template>
   <aside class="sidebar">
     <nav class="nav-menu">
-      <router-link to="/" class="nav-item" :class="{ active: $route.name === 'Dashboard' }">
+      <!-- Director 和 Manager 可见：仪表盘 -->
+      <router-link
+        v-if="isDirector || isManager"
+        to="/"
+        class="nav-item"
+        :class="{ active: $route.name === 'Dashboard' }"
+      >
         <i class="icon">📊</i>
         <span>仪表盘</span>
       </router-link>
-      <router-link to="/projects" class="nav-item" :class="{ active: $route.path.startsWith('/projects') }">
+
+      <!-- Director 和 Manager 可见：项目管理 -->
+      <router-link
+        v-if="isDirector || isManager"
+        to="/projects"
+        class="nav-item"
+        :class="{ active: $route.path.startsWith('/projects') }"
+      >
         <i class="icon">📁</i>
         <span>项目管理</span>
       </router-link>
-      <router-link to="/performance" class="nav-item" :class="{ active: $route.name === 'Performance' }">
-        <i class="icon">🏆</i>
-        <span>绩效看板</span>
-      </router-link>
-      <router-link to="/gantt" class="nav-item" :class="{ active: $route.name === 'Gantt' }">
+
+      <!-- Director 和 Manager 可见：甘特图 -->
+      <router-link
+        v-if="isDirector || isManager"
+        to="/gantt"
+        class="nav-item"
+        :class="{ active: $route.name === 'Gantt' }"
+      >
         <i class="icon">📅</i>
         <span>甘特图</span>
       </router-link>
-      <router-link to="/personal" class="nav-item" :class="{ active: $route.name === 'PersonalTable' }">
+
+      <!-- 普通 User 可见：个人工作台 -->
+      <router-link
+        v-if="isUser"
+        to="/personal"
+        class="nav-item"
+        :class="{ active: $route.name === 'PersonalTable' }"
+      >
         <i class="icon">👤</i>
         <span>个人工作台</span>
+      </router-link>
+
+      <!-- 普通 User 可见：参与的项目 -->
+      <router-link
+        v-if="isUser"
+        to="/my-project"
+        class="nav-item"
+        :class="{ active: $route.name === 'MyProjects' }"
+      >
+        <i class="icon">📋</i>
+        <span>参与的项目</span>
+      </router-link>
+
+      <!-- 所有用户可见：绩效看板 -->
+      <router-link
+        to="/performance"
+        class="nav-item"
+        :class="{ active: $route.name === 'Performance' }"
+      >
+        <i class="icon">🏆</i>
+        <span>绩效看板</span>
       </router-link>
     </nav>
   </aside>
@@ -33,12 +77,16 @@ export default defineComponent({
   name: 'Sidebar',
   setup() {
     const authStore = useAuthStore();
-    const isDirectorOrManager = computed(() => {
-      return ['director', 'manager'].includes(authStore.userRole);
-    });
+    const role = computed(() => authStore.user?.role);
+
+    const isDirector = computed(() => role.value === 'director');
+    const isManager  = computed(() => role.value === 'manager');
+    const isUser     = computed(() => role.value === 'user');
 
     return {
-      isDirectorOrManager
+      isDirector,
+      isManager,
+      isUser
     };
   }
 });

@@ -1,5 +1,5 @@
 <template>
-  <div class="container">
+  <div class="container" style="padding-top: 20px;">
     <div v-if="loading" class="loading-state">
       <div class="loading-spinner"></div>
       <p>加载中...</p>
@@ -22,7 +22,7 @@
         </div>
         <div class="header-actions">
           <button @click="goBackToProjects" class="btn btn-secondary btn-sm">
-            <i class="icon">← </i> 返回项目列表
+            <i class="icon">← </i> {{ getBackButtonText() }}
           </button>
         </div>
       </div>
@@ -92,22 +92,29 @@
             <BurnoutDiagram 
               :actualProgresses="burnDownData?.actual_progresses ?? []"
               :idealProgresses="burnDownData?.ideal_progresses ?? []"
+              :riskLevel="burnDownData?.risk_level ?? RiskLevel.NONE"
             />
           </div>
         </div>
       </div>
 
-      <div class="card mt-lg mb-lg">
+      <!-- 项目任务 - 仅非Director角色可见 -->
+      <div v-if="!isDirector" class="card mt-lg mb-lg">
         <div class="card-header d-flex justify-between align-center">
           <h2>项目任务 ({{ projectTasks.length }})</h2>
-          <button @click="showTaskModal = true" class="btn btn-primary btn-sm">
+          <!-- 仅 Manager 可见添加任务按钮 -->
+          <button 
+            v-if="isManager"
+            @click="showTaskModal = true" 
+            class="btn btn-primary btn-sm"
+          >
             <i class="icon">📝</i> 添加任务
           </button>
         </div>
         <div class="card-body">
           <TaskList 
             :tasks="projectTasks" 
-            :show-actions="true"
+            :show-actions="isManager"
             @edit="editTask"
             @delete="deleteTask"
             @toggle-status="toggleTaskStatus"
@@ -117,9 +124,9 @@
         </div>
       </div>
 
-      <!-- Modals -->
+      <!-- Modals - 仅 Manager 可见 -->
       <UserAssignModal
-        v-if="showAssignModal && selectedTask"
+        v-if="showAssignModal && selectedTask && isManager"
         :project-id="project?.id"
         :assigned-users="projectMembers"
         :pre-selected-task="selectedTask"
@@ -128,14 +135,14 @@
       />
 
       <TaskCreateModal
-        v-if="showTaskModal"
+        v-if="showTaskModal && isManager"
         :project-id="project.id"
         @close="showTaskModal = false"
         @created="handleTaskCreated"
       />
 
       <TaskEditModal
-        v-if="showEditTaskModal && editingTask"
+        v-if="showEditTaskModal && editingTask && isManager"
         :task="editingTask"
         @close="showEditTaskModal = false"
         @updated="handleTaskUpdated"
@@ -146,10 +153,11 @@
 </template>
 
 <script lang="ts">
-import { defineComponent, ref, onMounted } from 'vue';
+import { defineComponent, ref, onMounted, computed } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { useProjectStore } from '@/stores/project';
 import { useTaskStore } from '@/stores/task';
+import { useAuthStore } from '@/stores/auth';
 import TaskList from '@/components/tasks/TaskList.vue';
 import BurnoutDiagram from '@/components/tasks/BurnoutDiagram.vue';
 import UserAssignModal from '@/components/modals/UserAssignModal.vue';
@@ -171,6 +179,7 @@ export default defineComponent({
     const router = useRouter();
     const projectStore = useProjectStore();
     const taskStore = useTaskStore();
+    const authStore = useAuthStore();
     
     const project = ref<Project | null>(null);
     const projectTasks = ref<Task[]>([]);
@@ -347,11 +356,25 @@ export default defineComponent({
       }
     };
 
+    const getBackButtonText = () => {
+      const userRole = authStore.user?.role;
+      return userRole === 'user' ? '返回工作台' : '返回项目列表';
+    };
+
     const goBackToProjects = () => {
-      router.push('/projects');
+      const userRole = authStore.user?.role;
+      if (userRole === 'user') {
+        router.push('/personal'); // User角色返回个人工作台
+      } else {
+        router.push('/projects'); // Director和Manager返回项目列表
+      }
     };
 
     onMounted(fetchProject);
+
+    // 用户角色判断
+    const isManager = computed(() => authStore.user?.role === 'manager');
+    const isDirector = computed(() => authStore.user?.role === 'director');
 
     return {
       project,
@@ -366,6 +389,8 @@ export default defineComponent({
       editingTask,
       selectedTask,
       RiskLevel,
+      isManager,
+      isDirector,
       getStatusText,
       getRoleText,
       RiskLevelText,
@@ -382,6 +407,7 @@ export default defineComponent({
       handleTaskDeleted,
       handleTaskUpdate,
       handleTaskReorder,
+      getBackButtonText,
       goBackToProjects,
     };
   },

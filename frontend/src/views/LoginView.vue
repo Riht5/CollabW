@@ -77,7 +77,14 @@ export default defineComponent({
           identifier: identifier.value, 
           password: password.value 
         });
-        router.push('/'); // 登录成功后跳转到首页
+        
+        // 根据用户角色跳转到不同页面
+        const userRole = authStore.user?.role;
+        if (userRole === 'user') {
+          router.push('/personal'); // User角色跳转到个人工作台
+        } else {
+          router.push('/'); // Director和Manager角色跳转到仪表盘
+        }
       } catch (error: any) {
         errorMessage.value = error.response?.data?.detail || '登录失败，请检查用户名和密码';
       } finally {

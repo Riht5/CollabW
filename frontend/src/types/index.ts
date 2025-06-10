@@ -7,7 +7,6 @@ export interface Project {
   start_time?: string;
   end_time?: string;
   tasks?: Task[];
-  assigned_users?: User[];
   dependencies?: Project[];
 }
 
