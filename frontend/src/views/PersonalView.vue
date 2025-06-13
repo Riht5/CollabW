@@ -94,8 +94,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-@import '@/assets/styles/main.css';
-
 .personal-table {
   padding: 16px;
 }

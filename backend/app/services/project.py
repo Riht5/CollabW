@@ -102,19 +102,25 @@ def get_filled_project_progress(project_id: int, db: Session) -> List[ProjectPro
         progress_for_day = next((p for p in progresses if p.date == current_date), None)
 
         if progress_for_day:
-            filled_progresses.append(progress_for_day)
+            # 转换为 schema 对象
+            filled_progresses.append(ProjectProgress(
+                id=progress_for_day.id,
+                project_id=progress_for_day.project_id,
+                date=progress_for_day.date,
+                progress=progress_for_day.progress
+            ))
             last_progress = progress_for_day
             # 任务结束则停止填充
             if progress_for_day.progress >= 1.0:
                 break
         elif last_progress:
             # 如果没有当天的进度数据，使用最近一次的进度数据，并将日期更新为当前日期
-            filled_progress = ProjectProgressModel(
+            filled_progresses.append(ProjectProgress(
+                id=None,  # 临时数据，没有ID
                 project_id=last_progress.project_id,
                 date=current_date,
                 progress=last_progress.progress
-            )
-            filled_progresses.append(filled_progress)
+            ))
     return filled_progresses
 
 def get_ideal_project_progress(project_id: int, db: Session) -> List[ProjectProgress]:
@@ -130,11 +136,13 @@ def get_ideal_project_progress(project_id: int, db: Session) -> List[ProjectProg
     # 计算理想进度
     ideal_progresses = []
     # 理想进度的日期范围：从项目的 start_time 开始，持续 estimated_duration 天
-    current_date = project.start_time
+    current_date = project.start_time.date() if project.start_time else datetime.today().date()
+    
     for day in range(project.estimated_duration):
-        progress = round(day / (project.estimated_duration - 1), 2)  # 计算当天的理想进度
+        progress = round(day / (project.estimated_duration - 1), 2) if project.estimated_duration > 1 else 1.0  # 防止除零错误
         ideal_progresses.append(
             ProjectProgress(
+                id=None,  # 理想进度是计算出来的，没有ID
                 project_id=project_id,
                 date=current_date,
                 progress=progress

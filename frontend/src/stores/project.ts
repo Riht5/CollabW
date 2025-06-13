@@ -34,15 +34,16 @@ export const useProjectStore = defineStore('project', () => {
       loading.value = false;
     }
   };
-
   const fetchBurnDown = async (id: number | string) => {
     loading.value = true;
     error.value = null;
     try {
       const response = await apiClient.get(`/api/projects/${id}/burn-down/`);
-      return response.data as BurnDownProject;
+      const data = response.data as BurnDownProject;   
+      return data;
     } catch (err: any) {
       error.value = err.response?.data?.detail || 'Failed to fetch burn down chart data';
+      console.error('获取燃尽图数据失败:', err);
       return null;
     } finally {
       loading.value = false;

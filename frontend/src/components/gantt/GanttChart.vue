@@ -136,16 +136,23 @@ const toggleViewModeDropdown = () => {
   showViewModeDropdown.value = !showViewModeDropdown.value;
 };
 
-const changeViewMode = (mode: Gantt.viewMode) => {
+// 统一的甘特图创建函数，消除重复代码
+const createGanttChart = (viewMode?: Gantt.viewMode) => {
+  const mode = viewMode || currentViewMode.value;
+  
   if (!ganttContainer.value || !ganttStore.ganttAllData.length) {
     console.warn('甘特图容器或数据未就绪');
     return;
   }
+  
+  // 清理现有实例
+  ganttContainer.value.innerHTML = '';
+  gantt.value = null;
+  
   try {
-    ganttContainer.value.innerHTML = '';
-    gantt.value = null;
     const { startDate } = getTimelineRange();
     const tasksWithPadding = padGanttTasks(ganttStore.ganttAllData);
+    
     gantt.value = new Gantt(ganttContainer.value, tasksWithPadding, {
       view_mode: mode,
       date_format: 'YYYY-MM-DD',
@@ -154,98 +161,10 @@ const changeViewMode = (mode: Gantt.viewMode) => {
       column_width: mode === 'Day' ? 30 : mode === 'Week' ? 50 : mode === 'Month' ? 100 : 150,
       scroll_to: startDate,
       language: 'zh-cn',
-      popup: (task: Gantt.Task) => {
-        if (task.custom_class?.includes('placeholder')) return '';
-        // 使用 _start 和 _end，如果它们存在
-        const startDate = task._start
-          ? task._start.toLocaleDateString('zh-CN')
-          : new Date(task.start).toLocaleDateString('zh-CN');
-        const endDate = task._end
-          ? task._end.toLocaleDateString('zh-CN')
-          : task.end
-            ? new Date(task.end).toLocaleDateString('zh-CN')
-            : '';
-        const duration = task._end && task._start
-          ? Math.ceil((task._end.getTime() - task._start.getTime()) / (1000 * 60 * 60 * 24))
-          : task.end && task.start
-            ? Math.ceil((new Date(task.end).getTime() - new Date(task.start).getTime()) / (1000 * 60 * 60 * 24))
-            : 0;
-        return `
-          <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-            <h4 style="margin: 0 0 8px 0; color: #1f2937;">${task.name || '未知任务'}</h4>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">开始: ${startDate}</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">结束: ${endDate}</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">工期: ${duration} 天</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${task.progress !== undefined ? task.progress : 0}%</p>
-          </div>
-        `;
-      },
-      on_click: (task: Gantt.Task) => {
-        if (!task.custom_class?.includes('placeholder')) {
-          console.log('点击任务:', task);
-        }
-      },
-      on_date_change: (task: Gantt.Task, start: Date, end: Date) => {
-        console.log('日期变更:', task.name, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
-      },
-      on_progress_change: (task: Gantt.Task, progress: number) => {
-        console.log('进度变更:', task.name, progress);
-      }
-    });
-    currentViewMode.value = mode;
-    showViewModeDropdown.value = false;
-    console.log('视图切换至:', mode);
-  } catch (err) {
-    console.error('视图切换失败:', err);
-    ganttStore.error = '视图切换失败，请刷新页面重试';
-  }
-};
-
-const refreshGantt = async () => {
-  try {
-    await ganttStore.fetchGanttData();
-    console.log('刷新甘特图数据:', ganttStore.ganttAllData);
-    if (ganttStore.ganttAllData.length > 0) {
-      if (gantt.value) {
-        gantt.value.refresh(padGanttTasks(ganttStore.ganttAllData));
-        console.log('甘特图刷新成功:', ganttStore.ganttAllData);
-      } else {
-        console.warn('Gantt 实例未初始化，重新初始化');
-        initializeGantt();
-      }
-    }
-  } catch (err) {
-    console.error('刷新甘特图数据失败:', err);
-    ganttStore.error = '刷新甘特图数据失败，请重试';
-  }
-};
-
-// 优化的甘特图初始化
-const initializeGantt = () => {
-  if (!ganttContainer.value || !ganttStore.ganttAllData.length) {
-    console.warn('甘特图容器或数据未就绪');
-    return;
-  }
-  ganttContainer.value.innerHTML = '';
-  gantt.value = null;
-  try {
-    const { startDate } = getTimelineRange();
-    const tasksWithPadding = padGanttTasks(ganttStore.ganttAllData);
-    gantt.value = new Gantt(ganttContainer.value, tasksWithPadding, {
-      view_mode: currentViewMode.value,
-      date_format: 'YYYY-MM-DD',
-      bar_height: 32,
-      padding: 24,
-      column_width: currentViewMode.value === 'Day' ? 30 : currentViewMode.value === 'Week' ? 50 : currentViewMode.value === 'Month' ? 100 : 150,
-      scroll_to: startDate,
-      language: 'zh-cn',
       infinite_padding: false, // 限制无限扩展
       popup: (task: any) => {
-        // 调试 task 对象的结构
         if (task.task?.custom_class?.includes('placeholder')) return '';
-        // 从 task.task 中获取原始任务数据
-        const taskData = task.task || {};
-        const startDate = taskData._start
+        const taskData = task.task || {};        const startDate = taskData._start
           ? taskData._start.toLocaleDateString('zh-CN')
           : taskData.start
             ? new Date(taskData.start).toLocaleDateString('zh-CN')
@@ -282,10 +201,46 @@ const initializeGantt = () => {
         console.log('进度变更:', task.name, progress);
       }
     });
-    console.log('甘特图初始化成功');
+    
+    console.log('甘特图创建成功，视图模式:', mode);
+    return true;
   } catch (err) {
-    console.error('甘特图初始化失败:', err);
-    ganttStore.error = '甘特图初始化失败，请刷新页面重试';
+    console.error('甘特图创建失败:', err);
+    ganttStore.error = '甘特图创建失败，请刷新页面重试';
+    return false;
+  }
+};
+
+// 切换视图模式
+const changeViewMode = (mode: Gantt.viewMode) => {
+  if (createGanttChart(mode)) {
+    currentViewMode.value = mode;
+    showViewModeDropdown.value = false;
+    console.log('视图切换至:', mode);
+  }
+};
+
+// 初始化甘特图
+const initializeGantt = () => {
+  createGanttChart();
+};
+
+const refreshGantt = async () => {
+  try {
+    await ganttStore.fetchGanttData();
+    console.log('刷新甘特图数据:', ganttStore.ganttAllData);
+    if (ganttStore.ganttAllData.length > 0) {
+      if (gantt.value) {
+        gantt.value.refresh(padGanttTasks(ganttStore.ganttAllData));
+        console.log('甘特图刷新成功:', ganttStore.ganttAllData);
+      } else {
+        console.warn('Gantt 实例未初始化，重新初始化');
+        initializeGantt();
+      }
+    }
+  } catch (err) {
+    console.error('刷新甘特图数据失败:', err);
+    ganttStore.error = '刷新甘特图数据失败，请重试';
   }
 };
 

@@ -4,6 +4,7 @@ from passlib.context import CryptContext
 from typing import Optional, Dict
 from fastapi import HTTPException, status
 from app.core.config import settings
+from app.core.constants import ErrorMessage
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
@@ -30,11 +31,11 @@ def decode_access_token(token: str) -> Dict:
         if "sub" not in payload:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
-                detail="Invalid token payload"
+                detail=ErrorMessage.INVALID_TOKEN_PAYLOAD
             )
         return payload
     except JWTError:
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
-            detail="Could not validate credentials"
+            detail=ErrorMessage.COULD_NOT_VALIDATE_CREDENTIALS
         )

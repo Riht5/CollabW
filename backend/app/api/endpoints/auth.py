@@ -5,7 +5,7 @@ from app.models.user import User as UserModel
 from app.schemas.user import UserCreate, UserLogin, User as UserSchema, UserUpdate, PasswordChange
 from app.core.config import settings
 from app.core.security import create_access_token, verify_password, get_password_hash
-from app.core.constants import UserRole, StatusCode, ErrorMessage
+from app.core.constants import UserRole, StatusCode, ErrorMessage, SuccessMessage
 from app.core.utils import create_error_response
 from app.api.dependencies import get_current_user
 from app.services.user import create_user
@@ -23,7 +23,7 @@ def login(user: UserLogin, db: Session = Depends(get_db)):
     ).first()
     
     if not db_user or not verify_password(user.password, db_user.hashed_password):
-        raise HTTPException(status_code=400, detail="Invalid credentials")
+        raise HTTPException(status_code=400, detail=ErrorMessage.INVALID_CREDENTIALS)
     
     access_token = create_access_token(data={"sub": str(db_user.id)})
     return {"access_token": access_token, "token_type": "bearer"}
@@ -80,7 +80,7 @@ def update_profile(
             if existing_user:
                 raise HTTPException(
                     status_code=400,
-                    detail="Username already exists"
+                    detail=ErrorMessage.USERNAME_EXISTS
                 )
 
         # 检查邮箱是否已被其他用户使用
@@ -92,7 +92,7 @@ def update_profile(
             if existing_user:
                 raise HTTPException(
                     status_code=400,
-                    detail="Email already exists"
+                    detail=ErrorMessage.EMAIL_EXISTS
                 )
 
         # 更新用户信息
@@ -130,19 +130,19 @@ def change_password(
     """
     # 验证当前密码
     if not verify_password(password_change.current_password, current_user.hashed_password):
-        raise HTTPException(status_code=400, detail="Current password is incorrect")
+        raise HTTPException(status_code=400, detail=ErrorMessage.CURRENT_PASSWORD_INCORRECT)
     
     # 密码强度校验
     if len(password_change.new_password) < 6:
-        raise HTTPException(status_code=400, detail="New password must be at least 6 characters long")
+        raise HTTPException(status_code=400, detail=ErrorMessage.NEW_PASSWORD_TOO_SHORT)
     
     # 检查新密码是否与当前密码相同
     if verify_password(password_change.new_password, current_user.hashed_password):
-        raise HTTPException(status_code=400, detail="New password must be different from current password")
+        raise HTTPException(status_code=400, detail=ErrorMessage.NEW_PASSWORD_SAME_AS_CURRENT)
     
     # 更新密码
     current_user.hashed_password = get_password_hash(password_change.new_password)
     
     db.commit()
     
-    return {"success": True, "message": "Password changed successfully"}
+    return {"success": True, "message": SuccessMessage.PASSWORD_CHANGED_SUCCESSFULLY}

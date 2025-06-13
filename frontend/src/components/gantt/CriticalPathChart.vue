@@ -145,16 +145,30 @@ const toggleViewModeDropdown = () => {
   showViewModeDropdown.value = !showViewModeDropdown.value;
 };
 
-const changeViewMode = (mode: Gantt.viewMode) => {
+// 获取任务权重信息
+const getTaskWeight = (taskId: string): number => {
+  if (!ganttStore.criticalPathMeta) return 0;
+  const numericId = parseInt(taskId.replace('project_', ''));
+  return ganttStore.criticalPathMeta.weights[numericId] || 0;
+};
+
+// 统一的甘特图创建函数，消除重复代码
+const createGanttChart = (viewMode?: Gantt.viewMode) => {
+  const mode = viewMode || currentViewMode.value;
+  
   if (!ganttContainer.value || !ganttStore.criticalPathGanttData.length) {
-    console.warn('Gantt container or data not ready');
+    console.warn('关键路径甘特图容器或数据未就绪');
     return;
   }
+  
+  // 清理现有实例
+  ganttContainer.value.innerHTML = '';
+  gantt.value = null;
+  
   try {
-    ganttContainer.value.innerHTML = '';
-    gantt.value = null;
     const { startDate } = getTimelineRange(mode);
     const tasksWithPadding = padGanttTasks(ganttStore.criticalPathGanttData, 4);
+    
     gantt.value = new Gantt(ganttContainer.value, tasksWithPadding, {
       view_mode: mode,
       date_format: 'YYYY-MM-DD',
@@ -189,8 +203,6 @@ const changeViewMode = (mode: Gantt.viewMode) => {
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">结束: ${endDate}</p>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">工期: ${duration} 天</p>
             <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${taskData.progress !== undefined ? taskData.progress : 0}%</p>
-            <p style="margin: 4px 0; color: #dc2626; font-size: 14px; font-weight: bold;">权重: ${weight.toFixed(2)} 天</p>
-            <small style="color: #ef4444;">⚠️ 关键路径任务，延期将影响整体进度</small>
           </div>
         `;
       },
@@ -207,13 +219,28 @@ const changeViewMode = (mode: Gantt.viewMode) => {
         console.log('关键任务进度变更:', task.task.name, progress);
       }
     });
+    
+    console.log('关键路径甘特图创建成功，视图模式:', mode);
+    return true;
+  } catch (err) {
+    console.error('关键路径甘特图创建失败:', err);
+    ganttStore.error = '关键路径甘特图创建失败，请刷新页面重试';
+    return false;
+  }
+};
+
+// 切换视图模式
+const changeViewMode = (mode: Gantt.viewMode) => {
+  if (createGanttChart(mode)) {
     currentViewMode.value = mode;
     showViewModeDropdown.value = false;
     console.log('视图切换至:', mode);
-  } catch (err) {
-    console.error('视图切换失败:', err);
-    ganttStore.error = '视图切换失败，请刷新页面重试';
   }
+};
+
+// 初始化甘特图
+const initializeGantt = () => {
+  createGanttChart();
 };
 
 const refreshCriticalPath = async () => {
@@ -232,83 +259,6 @@ const refreshCriticalPath = async () => {
   } catch (err) {
     console.error('刷新关键路径失败:', err);
     ganttStore.error = '刷新关键路径失败，请重试';
-  }
-};
-
-// 获取任务权重信息
-const getTaskWeight = (taskId: string): number => {
-  if (!ganttStore.criticalPathMeta) return 0;
-  const numericId = parseInt(taskId.replace('project_', ''));
-  return ganttStore.criticalPathMeta.weights[numericId] || 0;
-};
-
-// 优化的关键路径甘特图初始化
-const initializeGantt = () => {
-  if (!ganttContainer.value || !ganttStore.criticalPathGanttData.length) {
-    console.warn('关键路径甘特图容器或数据未就绪');
-    return;
-  }
-  ganttContainer.value.innerHTML = '';
-  gantt.value = null;
-  try {
-    const { startDate } = getTimelineRange(currentViewMode.value);
-    const tasksWithPadding = padGanttTasks(ganttStore.criticalPathGanttData, 4);
-    gantt.value = new Gantt(ganttContainer.value, tasksWithPadding, {
-      view_mode: currentViewMode.value,
-      date_format: 'YYYY-MM-DD',
-      bar_height: 36,
-      padding: 24,
-      column_width: currentViewMode.value === 'Day' ? 30 : currentViewMode.value === 'Week' ? 50 : currentViewMode.value === 'Month' ? 100 : 150,
-      scroll_to: startDate,
-      language: 'zh-cn',
-      popup: (task: any) => {
-        if (task.task?.custom_class?.includes('placeholder')) return '';
-        const taskData = task.task || {};
-        const startDate = taskData._start
-          ? taskData._start.toLocaleDateString('zh-CN')
-          : taskData.start
-            ? new Date(taskData.start).toLocaleDateString('zh-CN')
-            : '未知日期';
-        const endDate = taskData._end
-          ? taskData._end.toLocaleDateString('zh-CN')
-          : taskData.end
-            ? new Date(taskData.end).toLocaleDateString('zh-CN')
-            : '未知日期';
-        const duration = taskData._end && taskData._start
-          ? Math.ceil((taskData._end.getTime() - taskData._start.getTime()) / (1000 * 60 * 60 * 24))
-          : taskData.end && taskData.start
-            ? Math.ceil((new Date(taskData.end).getTime() - new Date(taskData.start).getTime()) / (1000 * 60 * 60 * 24))
-            : 0;
-        const weight = getTaskWeight(taskData.id || '');
-        return `
-          <div style="padding: 12px; background: white; border-radius: 8px; box-shadow: 0 4px 12px rgba(0,0,0,0.15); border-left: 4px solid #ef4444;">
-            <h4 style="margin: 0 0 8px 0; color: #dc2626; font-weight: bold;">🎯 ${taskData.name || '未知任务'}</h4>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">开始: ${startDate}</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">结束: ${endDate}</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">工期: ${duration} 天</p>
-            <p style="margin: 4px 0; color: #6b7280; font-size: 14px;">进度: ${taskData.progress !== undefined ? taskData.progress : 0}%</p>
-            <p style="margin: 4px 0; color: #dc2626; font-size: 14px; font-weight: bold;">权重: ${weight.toFixed(2)} 天</p>
-            <small style="color: #ef4444;">⚠️ 关键路径任务，延期将影响整体进度</small>
-          </div>
-        `;
-      },
-      on_click: (task: any) => {
-        if (!task.task?.custom_class?.includes('placeholder')) {
-          const weight = getTaskWeight(task.task.id || '');
-          console.log('点击关键任务:', task.task.name, '权重:', weight);
-        }
-      },
-      on_date_change: (task: any, start: Date, end: Date) => {
-        console.log('关键任务日期变更:', task.task.name, start.toISOString().split('T')[0], end.toISOString().split('T')[0]);
-      },
-      on_progress_change: (task: any, progress: number) => {
-        console.log('关键任务进度变更:', task.task.name, progress);
-      }
-    });
-    console.log('关键路径甘特图初始化成功');
-  } catch (err) {
-    console.error('关键路径甘特图初始化失败:', err);
-    ganttStore.error = '关键路径甘特图初始化失败，请刷新页面重试';
   }
 };
 

@@ -89,8 +89,6 @@ export default defineComponent({
 </script>
 
 <style scoped>
-@import '@/assets/styles/main.css';
-
 .my-project-view {
   padding: 16px;
 }

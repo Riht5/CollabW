@@ -7,7 +7,7 @@
 
 <script lang="ts">
 import { ref, defineComponent, onMounted, onBeforeUnmount, watch } from 'vue';
-import { ProjectProgress } from '@/types/index';
+import { ProjectProgress, RiskLevel } from '@/types/index';
 import * as echarts from 'echarts'
 
 export default defineComponent({
@@ -21,14 +21,27 @@ export default defineComponent({
       type: Array as () => ProjectProgress[],
       default: []
     },
+    riskLevel: {
+      type: String as () => RiskLevel,
+      default: RiskLevel.NONE
+    }
   },
   setup(props) {
     const chart = ref<HTMLDivElement | null>(null)
-    let myChart: echarts.ECharts | null = null
-
-    // 渲染燃尽图函数
+    let myChart: echarts.ECharts | null = null    // 渲染燃尽图函数
     const renderChart = (data: ProjectProgress[], idealData: ProjectProgress[]) => {
       if (!chart.value) return;
+      
+      // 验证输入数据
+      if (!Array.isArray(data)) {
+        console.warn('实际进度数据不是数组:', data);
+        return;
+      }
+      
+      if (!Array.isArray(idealData)) {
+        console.warn('理想进度数据不是数组:', idealData);
+        return;
+      }
       
       if (!myChart) {
         myChart = echarts.init(chart.value);
@@ -37,23 +50,53 @@ export default defineComponent({
         window.addEventListener('resize', () => {
           myChart?.resize();
         });
+      }      // 处理实际进度数据，添加数据验证
+      const actualData = data
+        .filter((item, index) => {
+          if (!item) {
+            console.warn(`实际进度数据第${index}项为空:`, item);
+            return false;
+          }
+          if (typeof item.progress !== 'number' || isNaN(item.progress)) {
+            console.warn(`实际进度数据第${index}项的progress无效:`, item);
+            return false;
+          }
+          return true;
+        })
+        .map(item => ({
+          name: item.date,
+          value: [item.date, (1 - item.progress) * 100]
+        }))
+        .sort((a, b) => 
+          new Date(a.name).getTime() - new Date(b.name).getTime()
+        );
+      
+      // 处理理想进度数据，添加数据验证
+      const idealLineData = idealData
+        .filter((item, index) => {
+          if (!item) {
+            console.warn(`理想进度数据第${index}项为空:`, item);
+            return false;
+          }
+          if (typeof item.progress !== 'number' || isNaN(item.progress)) {
+            console.warn(`理想进度数据第${index}项的progress无效:`, item);
+            return false;
+          }
+          return true;
+        })
+        .map(item => ({
+          name: item.date,
+          value: [item.date, (1 - item.progress) * 100]
+        }))
+        .sort((a, b) => 
+          new Date(a.name).getTime() - new Date(b.name).getTime()
+        );
+      
+      // 如果没有有效数据，显示提示
+      if (actualData.length === 0 && idealLineData.length === 0) {
+        console.warn('燃尽图没有有效数据可显示');
+        return;
       }
-      
-      // 处理实际进度数据
-      const actualData = data.map(item => ({
-        name: item.date,
-        value: [item.date, (1 - item.progress) * 100]
-      })).sort((a, b) => 
-        new Date(a.name).getTime() - new Date(b.name).getTime()
-      );
-      
-      // 处理理想进度数据
-      const idealLineData = idealData.map(item => ({
-        name: item.date,
-        value: [item.date, (1 - item.progress) * 100]
-      })).sort((a, b) => 
-        new Date(a.name).getTime() - new Date(b.name).getTime()
-      );
 
       // 配置图表选项
       const option: echarts.EChartsOption = {
@@ -65,8 +108,7 @@ export default defineComponent({
           borderWidth: 1,
           textStyle: {
             color: '#333'
-          },
-          formatter: (params: any) => {
+          },          formatter: (params: any) => {
             interface TooltipParam {
               seriesName: string;
               value: [string, number];
@@ -77,17 +119,31 @@ export default defineComponent({
             const idealParam = paramsArray.find(p => p.seriesName === '理想进度');
             
             const date = new Date(params[0].value[0]).toLocaleDateString();
-            const actual = actualParam?.value[1] ?? null;
-            const ideal = idealParam?.value[1] ?? 0;
+            
+            // 安全获取数值，处理 undefined 情况
+            const actual = actualParam?.value?.[1];
+            const ideal = idealParam?.value?.[1];
+            
+            // 确保数值有效
+            const actualValue = typeof actual === 'number' && !isNaN(actual) ? actual : null;
+            const idealValue = typeof ideal === 'number' && !isNaN(ideal) ? ideal : null;
             
             return `
               <div style="padding: 8px;">
                 <div style="font-weight: bold; margin-bottom: 4px;">📅 ${date}</div>
-                <div style="color: #3498db;">📊 实际剩余: ${actual?.toFixed(1)}%</div>
-                <div style="color: #FF4500;">🎯 理想剩余: ${ideal?.toFixed(1)}%</div>
-                ${actual !== null ? `<div style="margin-top: 4px; color: ${actual > ideal ? '#e74c3c' : '#27ae60'};">
-                  ${actual > ideal ? '⚠️ 进度延后' : '✅ 进度正常'}
-                </div>` : ''}
+                ${actualValue !== null ? 
+                  `<div style="color: #3498db;">📊 实际剩余: ${actualValue.toFixed(1)}%</div>` : 
+                  '<div style="color: #999;">📊 实际剩余: 无数据</div>'
+                }
+                ${idealValue !== null ? 
+                  `<div style="color: #FF4500;">🎯 理想剩余: ${idealValue.toFixed(1)}%</div>` : 
+                  '<div style="color: #999;">🎯 理想剩余: 无数据</div>'
+                }
+                ${actualValue !== null && idealValue !== null ? 
+                  `<div style="margin-top: 4px; color: ${actualValue > idealValue ? '#e74c3c' : '#27ae60'};">
+                    ${actualValue > idealValue ? '⚠️ 进度延后' : '✅ 进度正常'}
+                  </div>` : ''
+                }
               </div>
             `;
           }
