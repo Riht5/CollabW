@@ -1,0 +1,32 @@
+.wraning-from { 
+  padding: var(--spacing-xs) var(--spacing-sm);
+  border-radius: var(--radius-lg); 
+  font-weight: 500; 
+  font-size: var(--font-size-base); 
+  line-height: 1.5; 
+}
+
+.wraning-from.NONE { 
+  background-color: #f3f4f6; 
+  color: #1f2937; 
+}
+
+.wraning-from.LOW { 
+  background-color: #d1fae5; 
+  color: #065f46; 
+}
+
+.wraning-from.MEDIUM { 
+  background-color: #fef3c7; 
+  color: #92400e; 
+}
+
+.wraning-from.HIGH { 
+  background-color: #fee2d0; 
+  color: #753232; 
+}
+
+.wraning-from.CRITICAL { 
+  background-color: #fee2e2; 
+  color: #7f1d1d; 
+}

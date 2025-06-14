@@ -1,0 +1,13 @@
+FastAPI
+uvicorn
+sqlalchemy
+pydantic
+pydantic-settings
+python-multipart
+python-jose
+python-dotenv
+passlib[bcrypt]
+pytest
+httpx
+pytest-asyncio
+networkx
